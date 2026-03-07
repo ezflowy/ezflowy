@@ -3,12 +3,13 @@ import { registerPlugin, PluginApi } from '../../assets/ts/plugins';
 import { SerializedBlock } from '../../assets/ts/types';
 
 const pluginName = 'LLM Chat';
+const defaultProviderUrl = 'https://api.openai.com/v1/chat/completions';
 const defaultModel = 'gpt-5.4';
-const chatCompletionsUrl = 'https://api.openai.com/v1/chat/completions';
 
 type Settings = {
-  apiKey: string;
+  providerUrl: string;
   model: string;
+  apiKey: string;
 };
 
 type OutlineNode = {
@@ -114,12 +115,14 @@ async function buildOutlineText(path: Path, api: PluginApi): Promise<string> {
 
 async function getSettings(api: PluginApi): Promise<Settings> {
   const settings = await api.getData('settings', {
-    apiKey: '',
+    providerUrl: defaultProviderUrl,
     model: defaultModel,
+    apiKey: '',
   });
   return {
-    apiKey: settings.apiKey || '',
+    providerUrl: settings.providerUrl || defaultProviderUrl,
     model: settings.model || defaultModel,
+    apiKey: settings.apiKey || '',
   };
 }
 
@@ -134,7 +137,7 @@ async function ensureApiKey(api: PluginApi): Promise<string | null> {
   }
 
   const entered = window.prompt(
-    'Enter OpenAI API key for LLM Chat plugin (stored in document plugin data):',
+    'Enter LLM API key for LLM Chat plugin (stored in document plugin data):',
     ''
   );
   const apiKey = (entered || '').trim();
@@ -149,12 +152,65 @@ async function ensureApiKey(api: PluginApi): Promise<string | null> {
   return apiKey;
 }
 
+async function configureSettings(api: PluginApi): Promise<boolean> {
+  const settings = await getSettings(api);
+  const enteredProviderUrl = window.prompt(
+    'LLM provider URL (chat completions endpoint):',
+    settings.providerUrl
+  );
+  if (enteredProviderUrl === null) {
+    return false;
+  }
+  const providerUrl = enteredProviderUrl.trim() || defaultProviderUrl;
+
+  const enteredModel = window.prompt('Model name:', settings.model);
+  if (enteredModel === null) {
+    return false;
+  }
+  const model = enteredModel.trim() || defaultModel;
+
+  const enteredApiKey = window.prompt(
+    'API key (leave blank to keep current key):',
+    ''
+  );
+  if (enteredApiKey === null) {
+    return false;
+  }
+  const apiKey = enteredApiKey.trim() || settings.apiKey;
+
+  await setSettings(api, {
+    apiKey,
+    providerUrl,
+    model,
+  });
+  return true;
+}
+
 registerPlugin({
   name: pluginName,
   author: 'Ivo Sele',
   description: `Send current bullet + descendants to Chat Completions and append ` +
-    `reply below. Default model: ${defaultModel}. Keybind: ctrl+shift+enter.`,
+    `reply below. Defaults: ${defaultProviderUrl} / ${defaultModel}. ` +
+    `Keybind: ctrl+shift+enter.`,
 }, async function(api) {
+  api.registerAction(
+    'llm-chat-configure',
+    'Configure LLM provider URL, model, and token',
+    async function({ session }) {
+      const changed = await configureSettings(api);
+      if (!changed) {
+        session.showMessage('LLM configuration cancelled', { text_class: 'error' });
+        return;
+      }
+      const settings = await getSettings(api);
+      const apiKeyStatus = settings.apiKey ? 'set' : 'missing';
+      session.showMessage(
+        `LLM config saved (${settings.providerUrl}, model ${settings.model}, apiKey ${apiKeyStatus})`,
+        { text_class: 'success' }
+      );
+    },
+  );
+
   api.registerAction(
     'llm-chat-send-current-subtree',
     'Send current line and descendants to ChatGPT and append response under current line',
@@ -179,7 +235,7 @@ registerPlugin({
 
       let replyText: string;
       try {
-        const response = await fetch(chatCompletionsUrl, {
+        const response = await fetch(settings.providerUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
