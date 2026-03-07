@@ -21,10 +21,19 @@ function getIndent(depth: number): string {
 }
 
 function cleanLine(text: string): string {
-  return text
-    .replace(/^[-*+]\s+/, '')
-    .replace(/^\d+[\.)]\s+/, '')
-    .trim();
+  let cleaned = text.trim();
+  while (true) {
+    const next = cleaned
+      .replace(/^[-*+•◦▪‣·]\s+/, '')
+      .replace(/^\d+[\.)]\s+/, '')
+      .replace(/^\[[ xX]\]\s+/, '')
+      .trimStart();
+    if (next === cleaned) {
+      break;
+    }
+    cleaned = next;
+  }
+  return cleaned.trim();
 }
 
 function parseOutlineReply(reply: string): Array<SerializedBlock> {
@@ -183,7 +192,9 @@ registerPlugin({
                 role: 'user',
                 content:
                   'Continue/help with this outline. Treat the first bullet as current ' +
-                  `focus and include helpful next bullets.\\n\\n${outline}`,
+                  'focus and include helpful next bullets. Return plain text lines only: ' +
+                  'do not start lines with bullet/list markers (no -, *, +, •, or numbering). ' +
+                  `Use indentation to show nesting.\\n\\n${outline}`,
               },
             ],
           }),
@@ -208,7 +219,8 @@ registerPlugin({
       }
 
       const replyBlocks = parseOutlineReply(replyText);
-      await session.addBlocks(promptPath, -1, replyBlocks);
+      const existingChildren = await session.document.getChildren(promptPath);
+      await session.addBlocks(promptPath, existingChildren.length, replyBlocks);
       if (await session.document.collapsed(promptPath.row)) {
         await session.document.setCollapsed(promptPath.row, false);
       }
