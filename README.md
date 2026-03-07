@@ -1,4 +1,4 @@
-# ![Vimflowy](/static/images/vimflowy-32.png?raw=true) Vimflowy
+# ![ezflowy](/static/images/vimflowy-32.png?raw=true) ezflowy
 
 [![Build Status](https://travis-ci.org/WuTheFWasThat/vimflowy.svg?branch=master)](https://travis-ci.org/WuTheFWasThat/vimflowy?branch=master)
 
