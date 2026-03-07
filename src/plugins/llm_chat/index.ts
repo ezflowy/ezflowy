@@ -229,10 +229,9 @@ registerPlugin({
               {
                 role: 'user',
                 content:
-                  'Continue/help with this outline. Treat the first bullet as current ' +
-                  'focus and include helpful next bullets. Return plain text lines only: ' +
-                  'do not start lines with bullet/list markers (no -, *, +, •, or numbering). ' +
-                  `Use indentation to show nesting.\\n\\n${outline}`,
+                    'Continue/help with this outline. Treat the first bullet as current ' +
+                    'focus and include helpful next bullets.'+
+                    `\\n\\n${outline}`,
               },
             ],
           }),
