@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/WuTheFWasThat/vimflowy.svg?branch=master)](https://travis-ci.org/WuTheFWasThat/vimflowy?branch=master)
 
-NOTE: I don't have time to maintain this anymore, sorry!
+This is currently being maintained by @phaze9 and Codex.
 
 This is a productivity tool which draws some inspiration from workflowy and vim.
 
