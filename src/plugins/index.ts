@@ -11,6 +11,7 @@ import './deadlines';
 import './tags';
 import './clone_tags';
 import './bracket_completion';
+import './llm_chat';
 
 // for developers: uncomment the following lines
 /*

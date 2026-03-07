@@ -1,0 +1,232 @@
+import Path from '../../assets/ts/path';
+import { registerPlugin, PluginApi } from '../../assets/ts/plugins';
+import { SerializedBlock } from '../../assets/ts/types';
+
+const pluginName = 'LLM Chat';
+const defaultModel = 'gpt-4.1';
+const chatCompletionsUrl = 'https://api.openai.com/v1/chat/completions';
+
+type Settings = {
+  apiKey: string;
+  model: string;
+};
+
+type OutlineNode = {
+  text: string;
+  children: Array<OutlineNode>;
+};
+
+function getIndent(depth: number): string {
+  return new Array(depth + 1).join('  ');
+}
+
+function cleanLine(text: string): string {
+  return text
+    .replace(/^[-*+]\s+/, '')
+    .replace(/^\d+[\.)]\s+/, '')
+    .trim();
+}
+
+function parseOutlineReply(reply: string): Array<SerializedBlock> {
+  const roots: Array<OutlineNode> = [];
+  const stack: Array<{ level: number, node: OutlineNode }> = [];
+
+  reply.replace(/\r/g, '').split('\n').forEach((line) => {
+    if (!line.trim()) {
+      return;
+    }
+
+    const spaces = (line.match(/^\s*/) || [''])[0]
+      .replace(/\t/g, '  ')
+      .length;
+    const level = Math.floor(spaces / 2);
+
+    const text = cleanLine(line);
+    if (!text) {
+      return;
+    }
+
+    const node: OutlineNode = { text, children: [] };
+
+    while (stack.length && stack[stack.length - 1].level >= level) {
+      stack.pop();
+    }
+
+    if (!stack.length) {
+      roots.push(node);
+    } else {
+      stack[stack.length - 1].node.children.push(node);
+    }
+
+    stack.push({ level, node });
+  });
+
+  if (!roots.length) {
+    return [cleanLine(reply) || '(no response)'];
+  }
+
+  const toSerialized = (node: OutlineNode): SerializedBlock => {
+    if (!node.children.length) {
+      return node.text;
+    }
+    return {
+      text: node.text,
+      children: node.children.map(toSerialized),
+    };
+  };
+
+  return roots.map(toSerialized);
+}
+
+async function buildOutlineText(path: Path, api: PluginApi): Promise<string> {
+  const visited: { [row: number]: boolean } = {};
+  const lines: Array<string> = [];
+
+  async function walk(curPath: Path, depth: number) {
+    const row = curPath.row;
+    if (visited[row]) {
+      lines.push(`${getIndent(depth)}- [clone omitted]`);
+      return;
+    }
+    visited[row] = true;
+
+    const text = (await api.session.document.getText(row)).trim();
+    lines.push(`${getIndent(depth)}- ${text}`);
+
+    const children = await api.session.document.getChildren(curPath);
+    for (let i = 0; i < children.length; i++) {
+      await walk(children[i], depth + 1);
+    }
+  }
+
+  await walk(path, 0);
+  return lines.join('\n');
+}
+
+async function getSettings(api: PluginApi): Promise<Settings> {
+  const settings = await api.getData('settings', {
+    apiKey: '',
+    model: defaultModel,
+  });
+  return {
+    apiKey: settings.apiKey || '',
+    model: settings.model || defaultModel,
+  };
+}
+
+async function setSettings(api: PluginApi, settings: Settings): Promise<void> {
+  await api.setData('settings', settings);
+}
+
+async function ensureApiKey(api: PluginApi): Promise<string | null> {
+  const settings = await getSettings(api);
+  if (settings.apiKey) {
+    return settings.apiKey;
+  }
+
+  const entered = window.prompt(
+    'Enter OpenAI API key for LLM Chat plugin (stored in document plugin data):',
+    ''
+  );
+  const apiKey = (entered || '').trim();
+  if (!apiKey) {
+    return null;
+  }
+
+  await setSettings(api, {
+    ...settings,
+    apiKey,
+  });
+  return apiKey;
+}
+
+registerPlugin({
+  name: pluginName,
+  author: 'OpenAI',
+  description: `Send current bullet + descendants to Chat Completions and append ` +
+    `reply below. Default model: ${defaultModel}. Keybind: ctrl+shift+enter.`,
+}, async function(api) {
+  api.registerAction(
+    'llm-chat-send-current-subtree',
+    'Send current line and descendants to ChatGPT and append response under current line',
+    async function({ session }) {
+      const promptPath = session.cursor.path;
+
+      if (!(await session.document.isValidPath(promptPath))) {
+        session.showMessage('Cannot send: cursor path is no longer valid', { text_class: 'error' });
+        return;
+      }
+
+      const apiKey = await ensureApiKey(api);
+      if (!apiKey) {
+        session.showMessage('LLM send cancelled (missing API key)', { text_class: 'error' });
+        return;
+      }
+
+      const settings = await getSettings(api);
+      const outline = await buildOutlineText(promptPath, api);
+
+      session.showMessage(`Sending to ChatGPT (${settings.model})...`, { time: 0 });
+
+      let replyText: string;
+      try {
+        const response = await fetch(chatCompletionsUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: settings.model,
+            messages: [
+              {
+                role: 'user',
+                content:
+                  'Continue/help with this outline. Treat the first bullet as current ' +
+                  `focus and include helpful next bullets.\\n\\n${outline}`,
+              },
+            ],
+          }),
+        });
+
+        const payload = await response.json();
+        if (!response.ok) {
+          const errText = (payload && payload.error && payload.error.message) || response.statusText;
+          throw new Error(errText || 'Request failed');
+        }
+
+        const choice = payload && payload.choices && payload.choices[0];
+        const message = choice && choice.message;
+        replyText = (message && message.content || '').trim();
+        if (!replyText) {
+          throw new Error('Empty response from model');
+        }
+      } catch (error) {
+        const message = (error as Error).message || 'LLM request failed';
+        session.showMessage(`LLM error: ${message}`, { text_class: 'error' });
+        return;
+      }
+
+      const replyBlocks = parseOutlineReply(replyText);
+      await session.addBlocks(promptPath, -1, replyBlocks);
+      if (await session.document.collapsed(promptPath.row)) {
+        await session.document.setCollapsed(promptPath.row, false);
+      }
+      session.showMessage('LLM reply added below current bullet', { text_class: 'success' });
+    },
+  );
+
+  api.registerDefaultMappings('NORMAL', {
+    'llm-chat-send-current-subtree': [
+      ['ctrl+shift+enter'],
+      ['meta+shift+enter'],
+    ],
+  });
+
+  api.registerDefaultMappings('INSERT', {
+    'llm-chat-send-current-subtree': [
+      ['ctrl+shift+enter'],
+      ['meta+shift+enter'],
+    ],
+  });
+}, (api => api.deregisterAll()));
