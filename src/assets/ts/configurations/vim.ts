@@ -304,7 +304,7 @@ function getDefaultData(): Array<SerializedBlock> {
       { text: 'Customizability (see Settings menu)', collapsed: true, children: [
         { text: 'Plugins system', collapsed: true, children: [
           'If you\'re interested in writing plugins, see here: ' +
-            'https://github.com/WuTheFWasThat/vimflowy/blob/master/docs/plugins.md',
+            'https://github.com/ezflowy/ezflowy/blob/master/docs/plugins.md',
         ] },
         'Customizable hotkeys (via downloading/uploading a json file)',
         'Customizable color theme',
@@ -317,7 +317,7 @@ function getDefaultData(): Array<SerializedBlock> {
         'By default, all data is entirely local',
         'There are no backups, and it is never sent over the internet',
         'However, remote data storage is supported',
-        'For more details, visit https://github.com/WuTheFWasThat/vimflowy/blob/master/docs/storage/README.md',
+        'For more details, visit https://github.com/ezflowy/ezflowy/blob/master/docs/storage/README.md',
         'To manage your data, visit the Settings menu',
       ] },
       { text: 'Importing and exporting data', children: [
@@ -329,7 +329,7 @@ function getDefaultData(): Array<SerializedBlock> {
         `For example, ${window.location.origin}/?doc=newdocname#`,
     ] },
     'Press i to enter insert mode and start adding your own content!',
-    'For more info, visit https://github.com/WuTheFWasThat/vimflowy (visit links under the cursor with gx)',
+    'For more info, visit https://github.com/ezflowy/ezflowy (visit links under the cursor with gx)',
   ];
 }
 

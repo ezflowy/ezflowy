@@ -174,4 +174,4 @@ Please let the vimflowy dev team know if you:
 - want additional features
 - think the API and/or documentation sucks
 
-Contact us on github: https://github.com/WuTheFWasThat/vimflowy
+Contact us on github: https://github.com/ezflowy/ezflowy

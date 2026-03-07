@@ -59,7 +59,7 @@ This default should work fine, but will give you email warnings about security. 
 }
 ```
 
-See [here](https://github.com/WuTheFWasThat/vimflowy/issues/370) for details
+See [here](https://github.com/ezflowy/ezflowy/issues/370) for details
 
 ### Configure Vimflowy
 

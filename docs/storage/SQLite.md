@@ -17,7 +17,7 @@ All commands in this section are on your server/computer where you're hosting.
 
 First, install vimflowy
 
-    git clone https://github.com/WuTheFWasThat/vimflowy.git
+    git clone https://github.com/ezflowy/ezflowy.git
     cd vimflowy
     npm install
 

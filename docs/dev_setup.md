@@ -16,7 +16,7 @@ If you do not already have that version installed:
 
 Then install dependencies:
 
-    git clone https://github.com/WuTheFWasThat/vimflowy.git
+    git clone https://github.com/ezflowy/ezflowy.git
     cd vimflowy
     npm install
 

@@ -49,7 +49,7 @@ export default class AppComponent extends React.Component<Props, {}> {
             <br/>
             Please help out Vimflowy and report the bug.
             Report the issue {' '}
-            <a href='https://github.com/WuTheFWasThat/vimflowy/issues/new'>
+            <a href='https://github.com/ezflowy/ezflowy/issues/new'>
               here
             </a>
             {' '} with:

@@ -572,7 +572,7 @@ export default class SettingsComponent extends React.Component<Props, State> {
           <div>
             For more info, or to contact the maintainers, please visit
             {' '}
-            <a href='https://github.com/WuTheFWasThat/vimflowy' style={{
+            <a href='https://github.com/ezflowy/ezflowy' style={{
               ...getStyles(session.clientStore, ['theme-link'])
             }}>
               the github website
