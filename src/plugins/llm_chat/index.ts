@@ -130,28 +130,6 @@ async function setSettings(api: PluginApi, settings: Settings): Promise<void> {
   await api.setData('settings', settings);
 }
 
-async function ensureApiKey(api: PluginApi): Promise<string | null> {
-  const settings = await getSettings(api);
-  if (settings.apiKey) {
-    return settings.apiKey;
-  }
-
-  const entered = window.prompt(
-    'Enter LLM API key for LLM Chat plugin (stored in document plugin data):',
-    ''
-  );
-  const apiKey = (entered || '').trim();
-  if (!apiKey) {
-    return null;
-  }
-
-  await setSettings(api, {
-    ...settings,
-    apiKey,
-  });
-  return apiKey;
-}
-
 async function configureSettings(api: PluginApi): Promise<boolean> {
   const settings = await getSettings(api);
   const enteredProviderUrl = window.prompt(
@@ -222,9 +200,9 @@ registerPlugin({
         return;
       }
 
-      const apiKey = await ensureApiKey(api);
-      if (!apiKey) {
-        session.showMessage('LLM send cancelled (missing API key)', { text_class: 'error' });
+      const configured = await configureSettings(api);
+      if (!configured) {
+        session.showMessage('LLM send cancelled (configuration cancelled)', { text_class: 'error' });
         return;
       }
 
@@ -235,12 +213,16 @@ registerPlugin({
 
       let replyText: string;
       try {
+        const headers: { [key: string]: string } = {
+          'Content-Type': 'application/json',
+        };
+        if (settings.apiKey) {
+          headers.Authorization = `Bearer ${settings.apiKey}`;
+        }
+
         const response = await fetch(settings.providerUrl, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKey}`,
-          },
+          headers,
           body: JSON.stringify({
             model: settings.model,
             messages: [
