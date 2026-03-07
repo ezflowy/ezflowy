@@ -88,6 +88,30 @@ function parseOutlineReply(reply: string): Array<SerializedBlock> {
   return roots.map(toSerialized);
 }
 
+function blockText(block: SerializedBlock): string {
+  if (typeof block === 'string') {
+    return block;
+  }
+  if ('clone' in block) {
+    return '';
+  }
+  return block.text;
+}
+
+function blockChildren(block: SerializedBlock): Array<SerializedBlock> {
+  if (typeof block === 'string' || ('clone' in block)) {
+    return [];
+  }
+  return block.children || [];
+}
+
+function normalizeForMatch(text: string): string {
+  return cleanLine(text)
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 async function buildOutlineText(path: Path, api: PluginApi): Promise<string> {
   const visited: { [row: number]: boolean } = {};
   const lines: Array<string> = [];
@@ -255,7 +279,19 @@ registerPlugin({
         return;
       }
 
-      const replyBlocks = parseOutlineReply(replyText);
+      let replyBlocks = parseOutlineReply(replyText);
+      const currentText = await session.document.getText(promptPath.row);
+      if (replyBlocks.length > 0 &&
+          normalizeForMatch(blockText(replyBlocks[0])) === normalizeForMatch(currentText)) {
+        replyBlocks = [
+          ...blockChildren(replyBlocks[0]),
+          ...replyBlocks.slice(1),
+        ];
+      }
+      if (replyBlocks.length === 0) {
+        session.showMessage('LLM reply contained no new bullets to add', { text_class: 'error' });
+        return;
+      }
       const existingChildren = await session.document.getChildren(promptPath);
       await session.addBlocks(promptPath, existingChildren.length, replyBlocks);
       if (await session.document.collapsed(promptPath.row)) {
