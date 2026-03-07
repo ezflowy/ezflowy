@@ -59,7 +59,7 @@ See [dev_setup.md](docs/dev_setup.md) to see how to get started with a developme
 
 #### LICENSE
 
-MIT: https://wuthefwasthat.mit-license.org/
+AGPL-3.0-only: https://www.gnu.org/licenses/agpl-3.0.html
 
 ## FAQ (AKA questions I imagine people would ask me)
 
