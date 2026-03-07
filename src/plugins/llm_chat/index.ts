@@ -3,7 +3,7 @@ import { registerPlugin, PluginApi } from '../../assets/ts/plugins';
 import { SerializedBlock } from '../../assets/ts/types';
 
 const pluginName = 'LLM Chat';
-const defaultModel = 'gpt-4.1';
+const defaultModel = 'gpt-5.4';
 const chatCompletionsUrl = 'https://api.openai.com/v1/chat/completions';
 
 type Settings = {
@@ -142,7 +142,7 @@ async function ensureApiKey(api: PluginApi): Promise<string | null> {
 
 registerPlugin({
   name: pluginName,
-  author: 'OpenAI',
+  author: 'Ivo Sele',
   description: `Send current bullet + descendants to Chat Completions and append ` +
     `reply below. Default model: ${defaultModel}. Keybind: ctrl+shift+enter.`,
 }, async function(api) {
