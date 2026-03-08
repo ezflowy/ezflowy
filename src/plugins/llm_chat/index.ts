@@ -38,6 +38,10 @@ function cleanLine(text: string): string {
   return cleaned.trim();
 }
 
+function startsWithBulletMarker(text: string): boolean {
+  return /^\s*\*+\s+[-*+•◦▪‣·]\s+/.test(text);
+}
+
 function parseOutlineReply(reply: string): Array<SerializedBlock> {
   const roots: Array<OutlineNode> = [];
   const stack: Array<{ level: number, node: OutlineNode }> = [];
@@ -50,7 +54,10 @@ function parseOutlineReply(reply: string): Array<SerializedBlock> {
     const spaces = (line.match(/^\s*/) || [''])[0]
       .replace(/\t/g, '  ')
       .length;
-    const level = Math.floor(spaces / 4);
+    let level = Math.floor(spaces / 4);
+    if (startsWithBulletMarker(line)) {
+      level += 1;
+    }
 
     const text = cleanLine(line);
     if (!text) {
