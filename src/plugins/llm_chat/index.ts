@@ -261,8 +261,7 @@ registerPlugin({
               {
                 role: 'user',
                 content:
-                    'Continue/help with this outline. ' +
-                    'Treat the first bullet as current focus and include helpful next bullets. ' +
+                    'Help with this outline. ' +
                     'Preserve all URLs exactly as-is. ' +
                     `\\n\\n${outline}`,
               },
