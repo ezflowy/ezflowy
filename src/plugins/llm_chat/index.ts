@@ -18,7 +18,8 @@ type OutlineNode = {
 };
 
 function getIndent(depth: number): string {
-  return new Array(depth + 1).join('  ');
+  let prefix = new Array(depth).join('    ');
+  return depth == 0 ? prefix : prefix + '* ';
 }
 
 function cleanLine(text: string): string {
@@ -49,7 +50,7 @@ function parseOutlineReply(reply: string): Array<SerializedBlock> {
     const spaces = (line.match(/^\s*/) || [''])[0]
       .replace(/\t/g, '  ')
       .length;
-    const level = Math.floor(spaces / 2);
+    const level = Math.floor(spaces / 4);
 
     const text = cleanLine(line);
     if (!text) {
@@ -119,13 +120,13 @@ async function buildOutlineText(path: Path, api: PluginApi): Promise<string> {
   async function walk(curPath: Path, depth: number) {
     const row = curPath.row;
     if (visited[row]) {
-      lines.push(`${getIndent(depth)}- [clone omitted]`);
+      lines.push(`${getIndent(depth)}[clone omitted]`);
       return;
     }
     visited[row] = true;
 
     const text = (await api.session.document.getText(row)).trim();
-    lines.push(`${getIndent(depth)}- ${text}`);
+    lines.push(`${getIndent(depth)}${text}`);
 
     const children = await api.session.document.getChildren(curPath);
     for (let i = 0; i < children.length; i++) {
