@@ -31,7 +31,7 @@ import { ClientStore, DocumentStore } from './datastore';
 import { SynchronousInMemory, InMemory } from '../../shared/data_backend';
 import {
   BackendType, SynchronousLocalStorageBackend,
-  LocalStorageBackend, FirebaseBackend, ClientSocketBackend, IndexedDBBackend
+  FirebaseBackend, ClientSocketBackend, IndexedDBBackend
 } from './data_backend';
 import Document from './document';
 import { PluginsManager } from './plugins';
@@ -190,7 +190,7 @@ $(document).ready(async () => {
   if (backend_type === 'firebase') {
     try {
       docStore = await getFirebaseStore();
-    } catch (e) {
+    } catch (e: any) {
       alert(`
         Error loading firebase datastore:
 
@@ -209,7 +209,7 @@ $(document).ready(async () => {
   } else if (backend_type === 'socketserver') {
     try {
       docStore = await getSocketServerStore();
-    } catch (e) {
+    } catch (e: any) {
       alert(`
         Error loading socket server datastore:
 
