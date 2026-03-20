@@ -1,4 +1,4 @@
-FROM node:10-stretch AS build
+FROM node:22-bookworm AS build
 LABEL maintainer="will.price94@gmail.com"
 LABEL version="0.0.1"
 # Prevent npm from spamming
@@ -6,14 +6,14 @@ ENV NPM_CONFIG_LOGLEVEL=warn
 RUN npm config set progress=false
 WORKDIR /app/
 COPY package.json package-lock.json ./
-RUN npm install
+RUN npm install --legacy-peer-deps
 COPY . .
 RUN REACT_APP_SERVER_CONFIG='{"socketserver": true}' npm run build
 
-FROM node:10-alpine
+FROM node:22-alpine
 WORKDIR /app
 COPY --from=build /app/package.json /app/package-lock.json ./
-RUN npm install --production
+RUN npm install --production --legacy-peer-deps
 RUN mkdir -p /app/build
 COPY --from=build /app/build/ /app/build
 VOLUME /app/db
