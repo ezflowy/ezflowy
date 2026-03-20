@@ -183,7 +183,7 @@ export class TagsPlugin {
       },
       key_transforms: [
         async (key, context) => {
-          if (key === 'space') { key = ' '};
+          if (key === 'space') { key = ' '; }
           if (key.length === 1) {
             if (this.tagstate === null) {
               throw new Error('Tag state null during key transform');

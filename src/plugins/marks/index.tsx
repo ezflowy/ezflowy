@@ -12,7 +12,7 @@ import Session, { InMemorySession } from '../../assets/ts/session';
 import LineComponent from '../../assets/ts/components/line';
 import Mutation from '../../assets/ts/mutations';
 import Path from '../../assets/ts/path';
-import { Col, Row } from '../../assets/ts/types';
+import { Row } from '../../assets/ts/types';
 import { getStyles } from '../../assets/ts/themes';
 
 import { SINGLE_LINE_MOTIONS } from '../../assets/ts/definitions/motions';
@@ -175,7 +175,7 @@ export class MarksPlugin {
       },
       key_transforms: [
         async (key, context) => {
-          if (key === 'space') { key = ' '};
+          if (key === 'space') { key = ' '; }
           if (key.length === 1) {
             if (this.markstate === null) {
               throw new Error('Mark state null during key transform');
@@ -221,7 +221,7 @@ export class MarksPlugin {
           const line = await session.document.getText(cursor.row);
           const matches = that.getMarkMatches(line);
           let mark = '';
-          matches.map((pos) => {
+          matches.forEach((pos) => {
             if (cursor.col >= pos[0] && cursor.col <= pos[1]) {
               mark = that.parseMarkMatch(line.slice(pos[0], pos[1]));
             }
@@ -445,7 +445,7 @@ export class MarksPlugin {
       ) => {
         if (this.session.mode === 'NORMAL') {
           const matches = this.getMarkMatches(token.text);
-          matches.map(pos => {
+          matches.forEach(pos => {
             let start = pos[0];
             let end = pos[1];
             const mark = this.parseMarkMatch(token.text.slice(start, end));

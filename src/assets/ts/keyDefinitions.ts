@@ -171,4 +171,5 @@ export class KeyDefinitions extends EventEmitter {
   }
 }
 
-export default new KeyDefinitions();
+const keyDefinitions = new KeyDefinitions();
+export default keyDefinitions;

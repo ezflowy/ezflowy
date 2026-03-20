@@ -183,7 +183,8 @@ export default class AppComponent extends React.Component<Props, {}> {
               display: 'flex',
               ...getStyles(session.clientStore, ['theme-bg-primary', 'theme-trim'])
             }}>
-            <a className='center'
+            <div className='center'
+              role='button'
               onClick={async () => {
                 await session.setMode(settingsMode ? 'NORMAL' : 'SETTINGS');
               }}
@@ -199,7 +200,7 @@ export default class AppComponent extends React.Component<Props, {}> {
                 </span>
                 <span>{settingsMode ? 'Back' : 'Settings'}</span>
               </div>
-            </a>
+            </div>
             <div style={{flexBasis: 0, flexGrow: 1, overflowX: 'hidden'}}
               className={userMessage.text_class}>
               {userMessage.message}

@@ -85,7 +85,8 @@ export default class BackendSettingsComponent extends React.Component<Props, Sta
   }
 
   public render() {
-    const firebaseBaseUrl = `https://console.firebase.google.com/project/${this.state.firebaseId || '${firebaseProjectId}'}`;
+    const firebaseProjectIdStr = '${firebaseProjectId}';
+    const firebaseBaseUrl = `https://console.firebase.google.com/project/${this.state.firebaseId || firebaseProjectIdStr}`;
 
     const backendTypes: Array<{
       name: string,

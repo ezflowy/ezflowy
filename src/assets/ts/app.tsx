@@ -31,7 +31,7 @@ import { ClientStore, DocumentStore } from './datastore';
 import { SynchronousInMemory, InMemory } from '../../shared/data_backend';
 import {
   BackendType, SynchronousLocalStorageBackend,
-  LocalStorageBackend, FirebaseBackend, ClientSocketBackend, IndexedDBBackend
+  FirebaseBackend, ClientSocketBackend, IndexedDBBackend
 } from './data_backend';
 import Document from './document';
 import { PluginsManager } from './plugins';
