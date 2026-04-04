@@ -5,7 +5,16 @@ My aim is for setup to be painless, so let me know if anything goes awry.
 
 ### Installation
 
-With recent versions of node (6.x) and npm:
+Use Node `v22` for this repo:
+
+    nvm use
+
+If you do not already have that version installed:
+
+    nvm install 22
+    nvm use 22
+
+Then install dependencies:
 
     git clone https://github.com/WuTheFWasThat/vimflowy.git
     cd vimflowy

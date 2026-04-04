@@ -1,5 +1,6 @@
 /dist/
 /build/
+/static/build/
 .sass-cache
 
 node_modules/
