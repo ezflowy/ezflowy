@@ -274,6 +274,7 @@ registerPlugin({
                     'Preserve all URLs exactly as-is. ' +
 
                     'Features:' +
+                    'Remove lines which are empty or only contain dashes. ' +
                     'Within text blocks, split sentences into separate lines and indent one level under the first sentence of the block. ' +
                     `\\n\\n${outline}`,
               },
