@@ -23,6 +23,7 @@ function getIndent(depth: number): string {
 }
 
 function cleanLine(text: string): string {
+  //return text;
   let cleaned = text.trim();
   while (true) {
     const next = cleaned
@@ -262,7 +263,18 @@ registerPlugin({
                 role: 'user',
                 content:
                     'Help with this outline. ' +
+
+                    'Formatting instructions:' +
+                    "Don't include the first line of the outline text in the response, unless it changed." +
+                    'Return everything in raw markdown. ' +
+                    'Convert anything which looks like a bullet into markdown list format. ' +
+                    'Convert enumerations into bullets. ' +
+                    'Use 4 spaces for indentation. ' +
+                    'Do not use any markdown header syntax.' +
                     'Preserve all URLs exactly as-is. ' +
+
+                    'Features:' +
+                    'Within text blocks, split sentences into separate lines and indent one level under the first sentence of the block. ' +
                     `\\n\\n${outline}`,
               },
             ],
