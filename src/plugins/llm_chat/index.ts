@@ -314,11 +314,14 @@ registerPlugin({
         return;
       }
       const existingChildren = await session.document.getChildren(promptPath);
-      await session.addBlocks(promptPath, existingChildren.length, replyBlocks);
+      if (existingChildren.length > 0) {
+        await session.delBlocks(promptPath.row, 0, existingChildren.length);
+      }
+      await session.addBlocks(promptPath, 0, replyBlocks);
       if (await session.document.collapsed(promptPath.row)) {
         await session.document.setCollapsed(promptPath.row, false);
       }
-      session.showMessage('LLM reply added below current bullet', { text_class: 'success' });
+      session.showMessage('LLM reply inserted below current bullet', { text_class: 'success' });
     },
   );
 
