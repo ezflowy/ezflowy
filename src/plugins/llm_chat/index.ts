@@ -258,27 +258,26 @@ registerPlugin({
           headers,
           body: JSON.stringify({
             model: settings.model,
-            messages: [
-              {
-                role: 'user',
-                content:
-                    'Help with this outline. ' +
+            messages: [{
+              role: 'user',
+              content:
+                'Help with this outline. ' +
 
-                    'Formatting instructions:' +
-                    "Don't include the first line of the outline text in the response, unless it changed." +
-                    'Return everything in raw markdown. ' +
-                    'Convert anything which looks like a bullet into markdown list format. ' +
-                    'Convert enumerations into bullets. ' +
-                    'Use 4 spaces for indentation. ' +
-                    'Do not use any markdown header syntax.' +
-                    'Preserve all URLs exactly as-is. ' +
+                'Formatting instructions:' +
+                "Don't include the first line of the outline text in the response, unless it changed." +
+                'Return everything in raw markdown. ' +
+                'Convert anything which looks like a bullet into markdown list format. ' +
+                'Convert enumerations into bullets. ' +
+                'Use 4 spaces for indentation. ' +
+                'Do not use any markdown header syntax.' +
+                'Preserve all URLs exactly as-is.\\n\\n' +
 
-                    'Features:' +
-                    'Remove lines which are empty or only contain dashes. ' +
-                    'Within text blocks, split sentences into separate lines and indent one level under the first sentence of the block. ' +
-                    `\\n\\n${outline}`,
-              },
-            ],
+                'Features:' +
+                'Remove lines which are empty or only contain dashes. ' +
+                'Join sentences which are split across lines. ' +
+                'Within text blocks, split sentences into separate lines and indent one level under the first sentence of the block. ' +
+                `\\n\\n${outline}`,
+            },],
           }),
         });
 
