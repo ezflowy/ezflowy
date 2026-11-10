@@ -1,6 +1,7 @@
 import Path from '../../assets/ts/path';
 import { registerPlugin, PluginApi } from '../../assets/ts/plugins';
 import { SerializedBlock } from '../../assets/ts/types';
+import './index.sass';
 
 const pluginName = 'LLM Chat';
 const defaultProviderUrl = 'https://api.openai.com/v1/chat/completions';
@@ -163,37 +164,129 @@ async function setSettings(api: PluginApi, settings: Settings): Promise<void> {
   await api.setData('settings', settings);
 }
 
+function appendSettingField(
+  form: HTMLFormElement,
+  labelText: string,
+  input: HTMLInputElement,
+  helpText?: string,
+): void {
+  const field = document.createElement('label');
+  field.className = 'llm-settings-dialog__field';
+
+  const label = document.createElement('span');
+  label.className = 'llm-settings-dialog__label';
+  label.textContent = labelText;
+  field.appendChild(label);
+  field.appendChild(input);
+
+  if (helpText) {
+    const help = document.createElement('span');
+    help.className = 'llm-settings-dialog__help';
+    help.textContent = helpText;
+    field.appendChild(help);
+  }
+
+  form.appendChild(field);
+}
+
+function showSettingsDialog(settings: Settings): Promise<Settings | null> {
+  return new Promise((resolve) => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const overlay = document.createElement('div');
+    overlay.className = 'llm-settings-dialog__overlay';
+    overlay.setAttribute('role', 'presentation');
+
+    const dialog = document.createElement('div');
+    dialog.className = 'llm-settings-dialog';
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('aria-labelledby', 'llm-settings-dialog-title');
+
+    const title = document.createElement('h2');
+    title.id = 'llm-settings-dialog-title';
+    title.textContent = 'Configure LLM provider';
+    dialog.appendChild(title);
+
+    const form = document.createElement('form');
+
+    const providerUrlInput = document.createElement('input');
+    providerUrlInput.type = 'url';
+    providerUrlInput.value = settings.providerUrl;
+    providerUrlInput.setAttribute('autocomplete', 'url');
+    appendSettingField(form, 'LLM provider URL', providerUrlInput, 'Chat completions endpoint');
+
+    const modelInput = document.createElement('input');
+    modelInput.type = 'text';
+    modelInput.value = settings.model;
+    modelInput.autocomplete = 'off';
+    appendSettingField(form, 'Model name', modelInput);
+
+    const apiKeyInput = document.createElement('input');
+    apiKeyInput.type = 'password';
+    apiKeyInput.autocomplete = 'off';
+    apiKeyInput.placeholder = settings.apiKey ? 'Current API key is set' : 'Optional';
+    appendSettingField(form, 'API key', apiKeyInput, 'Leave blank to keep the current key');
+
+    const actions = document.createElement('div');
+    actions.className = 'llm-settings-dialog__actions';
+
+    const cancelButton = document.createElement('button');
+    cancelButton.type = 'button';
+    cancelButton.textContent = 'Cancel';
+    actions.appendChild(cancelButton);
+
+    const saveButton = document.createElement('button');
+    saveButton.type = 'submit';
+    saveButton.className = 'llm-settings-dialog__save';
+    saveButton.textContent = 'Save';
+    actions.appendChild(saveButton);
+    form.appendChild(actions);
+    dialog.appendChild(form);
+    overlay.appendChild(dialog);
+
+    const close = (result: Settings | null): void => {
+      overlay.remove();
+      if (previouslyFocused && document.body.contains(previouslyFocused)) {
+        previouslyFocused.focus();
+      }
+      resolve(result);
+    };
+
+    cancelButton.addEventListener('click', () => close(null));
+    overlay.addEventListener('mousedown', (event) => {
+      if (event.target === overlay) {
+        close(null);
+      }
+    });
+    overlay.addEventListener('keydown', (event) => {
+      event.stopPropagation();
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        close(null);
+      }
+    });
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      close({
+        providerUrl: providerUrlInput.value.trim() || defaultProviderUrl,
+        model: modelInput.value.trim() || defaultModel,
+        apiKey: apiKeyInput.value.trim() || settings.apiKey,
+      });
+    });
+
+    document.body.appendChild(overlay);
+    providerUrlInput.focus();
+    providerUrlInput.select();
+  });
+}
+
 async function configureSettings(api: PluginApi): Promise<boolean> {
   const settings = await getSettings(api);
-  const enteredProviderUrl = window.prompt(
-    'LLM provider URL (chat completions endpoint):',
-    settings.providerUrl
-  );
-  if (enteredProviderUrl === null) {
+  const enteredSettings = await showSettingsDialog(settings);
+  if (!enteredSettings) {
     return false;
   }
-  const providerUrl = enteredProviderUrl.trim() || defaultProviderUrl;
-
-  const enteredModel = window.prompt('Model name:', settings.model);
-  if (enteredModel === null) {
-    return false;
-  }
-  const model = enteredModel.trim() || defaultModel;
-
-  const enteredApiKey = window.prompt(
-    'API key (leave blank to keep current key):',
-    ''
-  );
-  if (enteredApiKey === null) {
-    return false;
-  }
-  const apiKey = enteredApiKey.trim() || settings.apiKey;
-
-  await setSettings(api, {
-    apiKey,
-    providerUrl,
-    model,
-  });
+  await setSettings(api, enteredSettings);
   return true;
 }
 
