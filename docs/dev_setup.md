@@ -20,6 +20,26 @@ Then install dependencies:
     cd vimflowy
     npm install
 
+The project currently depends on some older packages whose peer dependency
+constraints do not resolve cleanly with modern npm. The repo-local `.npmrc`
+enables `legacy-peer-deps` automatically, so a plain `npm install` works.
+
+If you switch Node versions after installing dependencies, reinstall them
+before starting the server. In particular, a missing `sqlite3` native module
+error such as:
+
+    Error: Cannot find module '.../node_modules/sqlite3/lib/binding/node-v127-darwin-arm64/node_sqlite3.node'
+
+means the `sqlite3` binary was not built for the currently active Node runtime.
+The fix is:
+
+    nvm use
+    rm -rf node_modules
+    npm install
+
+This repo is pinned to Node 22, so reinstalling dependencies under that version
+rebuilds the `sqlite3` binding correctly.
+
 ### Run
 
 Simply run:
