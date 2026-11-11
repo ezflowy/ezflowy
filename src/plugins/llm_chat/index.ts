@@ -189,6 +189,36 @@ function appendSettingField(
   form.appendChild(field);
 }
 
+function getModelsUrl(providerUrl: string): string {
+  const url = new URL(providerUrl);
+  const path = url.pathname.replace(/\/$/, '');
+
+  if (/\/api\/(chat|generate)$/i.test(path)) {
+    url.pathname = path.replace(/\/api\/(chat|generate)$/i, '/api/tags');
+  } else if (/\/(chat\/completions|completions|responses)$/i.test(path)) {
+    url.pathname = path.replace(/\/(chat\/completions|completions|responses)$/i, '/models');
+  } else if (!/\/models$/i.test(path) && !/\/api\/tags$/i.test(path)) {
+    url.pathname = `${path}/models`;
+  }
+
+  url.search = '';
+  url.hash = '';
+  return url.toString();
+}
+
+function getModelNames(payload: any): Array<string> {
+  const entries = Array.isArray(payload && payload.data) ? payload.data :
+    (Array.isArray(payload && payload.models) ? payload.models : []);
+  const names = entries.map((entry: any) => {
+    if (typeof entry === 'string') {
+      return entry;
+    }
+    return entry && (entry.id || entry.name || entry.model);
+  }).filter((name: any): name is string => typeof name === 'string' && Boolean(name.trim()));
+
+  return Array.from(new Set<string>(names)).sort((left, right) => left.localeCompare(right));
+}
+
 function showSettingsDialog(settings: Settings): Promise<Settings | null> {
   return new Promise((resolve) => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
@@ -219,13 +249,85 @@ function showSettingsDialog(settings: Settings): Promise<Settings | null> {
     modelInput.type = 'text';
     modelInput.value = settings.model;
     modelInput.autocomplete = 'off';
-    appendSettingField(form, 'Model name', modelInput);
+    modelInput.setAttribute('role', 'combobox');
+    modelInput.setAttribute('aria-autocomplete', 'list');
+    modelInput.setAttribute('aria-expanded', 'false');
+    appendSettingField(form, 'Model name', modelInput, 'Click to retrieve models from the provider');
+
+    const modelField = modelInput.parentElement as HTMLLabelElement;
+    modelField.classList.add('llm-settings-dialog__model-field');
+    const modelList = document.createElement('div');
+    modelList.className = 'llm-settings-dialog__model-list';
+    modelList.setAttribute('role', 'listbox');
+    modelList.hidden = true;
+    modelField.insertBefore(modelList, modelInput.nextSibling);
 
     const apiKeyInput = document.createElement('input');
     apiKeyInput.type = 'password';
     apiKeyInput.autocomplete = 'off';
     apiKeyInput.placeholder = settings.apiKey ? 'Current API key is set' : 'Optional';
     appendSettingField(form, 'API key', apiKeyInput, 'Leave blank to keep the current key');
+
+    const hideModelList = (): void => {
+      modelList.hidden = true;
+      modelInput.setAttribute('aria-expanded', 'false');
+    };
+    const showModelMessage = (message: string, isError = false): void => {
+      modelList.replaceChildren();
+      const status = document.createElement('div');
+      status.className = 'llm-settings-dialog__model-status';
+      if (isError) {
+        status.classList.add('llm-settings-dialog__model-status--error');
+      }
+      status.textContent = message;
+      modelList.appendChild(status);
+      modelList.hidden = false;
+      modelInput.setAttribute('aria-expanded', 'true');
+    };
+    const loadModels = async (): Promise<void> => {
+      showModelMessage('Loading models...');
+      try {
+        const headers: { [key: string]: string } = {};
+        const apiKey = apiKeyInput.value.trim() || settings.apiKey;
+        if (apiKey) {
+          headers.Authorization = `Bearer ${apiKey}`;
+        }
+        const response = await fetch(getModelsUrl(providerUrlInput.value.trim() || defaultProviderUrl), {
+          headers,
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          const errText = payload && payload.error && (payload.error.message || payload.error);
+          throw new Error(errText || response.statusText || 'Request failed');
+        }
+
+        const models = getModelNames(payload);
+        if (!models.length) {
+          throw new Error('Provider returned no models');
+        }
+
+        modelList.replaceChildren();
+        models.forEach((model) => {
+          const option = document.createElement('button');
+          option.type = 'button';
+          option.className = 'llm-settings-dialog__model-option';
+          option.setAttribute('role', 'option');
+          option.textContent = model;
+          option.addEventListener('click', () => {
+            modelInput.value = model;
+            hideModelList();
+            modelInput.focus();
+          });
+          modelList.appendChild(option);
+        });
+      } catch (error) {
+        const message = (error as Error).message || 'Could not retrieve models';
+        showModelMessage(`Could not retrieve models: ${message}`, true);
+      }
+    };
+    modelInput.addEventListener('click', () => {
+      loadModels();
+    });
 
     const actions = document.createElement('div');
     actions.className = 'llm-settings-dialog__actions';
@@ -256,6 +358,8 @@ function showSettingsDialog(settings: Settings): Promise<Settings | null> {
     overlay.addEventListener('mousedown', (event) => {
       if (event.target === overlay) {
         close(null);
+      } else if (!modelField.contains(event.target as Node)) {
+        hideModelList();
       }
     });
     overlay.addEventListener('keydown', (event) => {

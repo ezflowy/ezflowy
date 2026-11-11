@@ -47,6 +47,48 @@
   display: block
   margin-bottom: 16px
 
+.llm-settings-dialog__model-field
+  position: relative
+
+.llm-settings-dialog__model-list
+  background: Field
+  border: 1px solid ButtonBorder
+  border-radius: 3px
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.25)
+  box-sizing: border-box
+  color: FieldText
+  left: 0
+  max-height: 220px
+  overflow-y: auto
+  position: absolute
+  right: 0
+  top: 60px
+  z-index: 1
+
+  &[hidden]
+    display: none
+
+  .llm-settings-dialog__model-option
+    background: transparent
+    border: 0
+    border-radius: 0
+    color: inherit
+    display: block
+    padding: 8px
+    text-align: left
+    width: 100%
+
+    &:hover, &:focus
+      background: Highlight
+      color: HighlightText
+
+.llm-settings-dialog__model-status
+  font-size: 12px
+  padding: 9px
+
+.llm-settings-dialog__model-status--error
+  color: #c33
+
 .llm-settings-dialog__label
   display: block
   font-weight: bold
