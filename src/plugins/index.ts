@@ -12,6 +12,7 @@ import './tags';
 import './clone_tags';
 import './bracket_completion';
 import './llm_chat';
+import './llm_agent';
 
 // for developers: uncomment the following lines
 /*

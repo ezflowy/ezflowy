@@ -35,6 +35,7 @@
     "scripts": {
         "lint": "tslint --exclude 'node_modules/**/*' '**/*.ts' '**/*.tsx'",
         "startprod": "ts-node --compilerOptions '{\"module\":\"commonjs\"}' server/prod.ts",
+        "agent-server": "ts-node --compilerOptions '{\"module\":\"commonjs\"}' server/agent_server.ts",
         "typecheck": "tsc -p . --noEmit",
         "verify": "npm run lint && npm run typecheck && npm test",
         "start": "react-scripts start",
