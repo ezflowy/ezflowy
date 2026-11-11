@@ -473,9 +473,13 @@ $(document).ready(async () => {
   // needed for safari
   const $pasteHack = $('#paste-hack');
   $pasteHack.focus();
-  $(document).on('click', function() {
+  $(document).on('click', function(event) {
     // if settings menu is up, we don't want to blur (the dropdowns need focus)
     if (session.mode === 'SETTINGS') { return; }
+    // Do not steal focus from controls rendered by plugins or other dialogs.
+    if ($(event.target).closest(
+      'input, textarea, select, button, label, [contenteditable="true"], [role="dialog"]'
+    ).length) { return; }
     // if user is trying to copy, we don't want to blur
     if (window.getSelection().toString()) { return; }
     $pasteHack.focus();

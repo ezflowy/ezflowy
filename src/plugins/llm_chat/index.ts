@@ -362,6 +362,11 @@ function showSettingsDialog(settings: Settings): Promise<Settings | null> {
         hideModelList();
       }
     });
+    dialog.addEventListener('click', (event) => {
+      // The editor's document-level click handler focuses its hidden Safari
+      // paste target. Keep clicks in this modal from stealing field focus.
+      event.stopPropagation();
+    });
     overlay.addEventListener('keydown', (event) => {
       event.stopPropagation();
       if (event.key === 'Escape') {
