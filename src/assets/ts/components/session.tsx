@@ -163,7 +163,12 @@ export default class SessionComponent extends React.Component<Props, State> {
   }
 
   public componentDidMount() {
+    this.props.session.on('editLocksChanged', this.update);
     this.update();
+  }
+
+  public componentWillUnmount() {
+    this.props.session.off('editLocksChanged', this.update);
   }
 
   private cursorBetween() {

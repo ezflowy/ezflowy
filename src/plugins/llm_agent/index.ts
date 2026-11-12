@@ -128,6 +128,16 @@ registerPlugin({
     const statusPath = rows[0];
     const responsePath = (await session.document.getChildren(statusPath))[0];
     const responseRows: Array<Path> = [(await session.document.getChildren(responsePath))[0]];
+    const outputLock = session.acquireEditLock(
+      await session.document.getSubtreeRows(statusPath.row)
+    );
+    let outputLocked = true;
+    const releaseOutputLock = () => {
+      if (outputLocked) {
+        session.releaseEditLock(outputLock);
+        outputLocked = false;
+      }
+    };
     if (await session.document.collapsed(sourcePath.row)) { await session.document.setCollapsed(sourcePath.row, false); }
     const socket = new WebSocket(settings.bridgeUrl);
     const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -142,8 +152,11 @@ registerPlugin({
       renderQueue = renderQueue.then(async () => {
         const lines = snapshot.replace(/\r/g, '').split('\n');
         while (responseRows.length < lines.length) {
-          const added = await session.addBlocks(responsePath, -1, ['']);
+          const added = await session.bypassEditLocks(
+            async () => await session.addBlocks(responsePath, -1, [''])
+          );
           responseRows.push(added[0]);
+          session.extendEditLock(outputLock, added.map(path => path.row));
         }
         for (let i = 0; i < lines.length; i++) {
           await setText(api, responseRows[i], lines[i] || (i === lines.length - 1 ? '…' : ' '));
@@ -172,28 +185,41 @@ registerPlugin({
         await setText(api, responseRows[0], `Agent error: ${message.message}`);
       }
       if (message.type === 'done') {
-        if (pendingRender != null) { window.clearTimeout(pendingRender); }
-        render();
-        await renderQueue;
-        if (!response) { await setText(api, responseRows[0], '(no response)'); }
-        await setText(api, statusPath, `Agent status [${message.code === 0 ? 'done' : 'error'} · ${provider}]`);
-        if (sessionId) {
-          await session.addBlocks(statusPath, -1, [{
-            text: `Agent resume [${provider}:${sessionId}]`,
-            children: ['Next prompt: '],
-          }]);
-        } else {
-          await session.addBlocks(statusPath, -1, [
-            message.code === 0 ? 'Next prompt: ' : `Agent error: ${message.error || `exit ${message.code}`}`,
-          ]);
+        try {
+          if (pendingRender != null) { window.clearTimeout(pendingRender); }
+          render();
+          await renderQueue;
+          if (!response) { await setText(api, responseRows[0], '(no response)'); }
+          await setText(api, statusPath, `Agent status [${message.code === 0 ? 'done' : 'error'} · ${provider}]`);
+          if (sessionId) {
+            await session.bypassEditLocks(async () => {
+              await session.addBlocks(statusPath, -1, [{
+                text: `Agent resume [${provider}:${sessionId}]`,
+                children: ['Next prompt: '],
+              }]);
+            });
+          } else {
+            await session.bypassEditLocks(async () => {
+              await session.addBlocks(statusPath, -1, [
+                message.code === 0 ? 'Next prompt: ' : `Agent error: ${message.error || `exit ${message.code}`}`,
+              ]);
+            });
+          }
+        } finally {
+          releaseOutputLock();
+          socket.close();
         }
-        socket.close();
       }
     };
     socket.onerror = async () => {
-      await setText(api, statusPath, `Agent status [bridge unavailable · ${provider}]`);
-      await setText(api, responseRows[0], `Agent error: cannot connect to ${settings.bridgeUrl}. Run npm run agent-server.`);
+      try {
+        await setText(api, statusPath, `Agent status [bridge unavailable · ${provider}]`);
+        await setText(api, responseRows[0], `Agent error: cannot connect to ${settings.bridgeUrl}. Run npm run agent-server.`);
+      } finally {
+        releaseOutputLock();
+      }
     };
+    socket.onclose = releaseOutputLock;
   });
   const mappings = {'llm-agent-run': [['ctrl+shift+a'], ['meta+shift+a']]};
   api.registerDefaultMappings('NORMAL', mappings);

@@ -2,6 +2,32 @@
 import TestCase from '../testcase';
 
 describe('random set of basic tests', function() {
+  it('locks one subtree while leaving the rest of the outline editable', async function() {
+    const t = new TestCase([
+      {text: 'sent', children: ['locked child']},
+      'editable',
+    ]);
+    t.sendKeys('A prior');
+    t.sendKey('esc');
+    t.lockCurrentSubtree();
+    t.appendToLockedSubtree('generated child');
+    t.sendKey('u');
+    t.sendKeys('A blocked');
+    t.sendKey('esc');
+    t.sendKeys('jj');
+    t.sendKeys('A blocked');
+    t.sendKey('esc');
+    t.sendKey('j');
+    t.sendKeys('A changed');
+    t.sendKey('esc');
+    t.expect([
+      {text: 'sent prior', children: ['locked child', 'generated child']},
+      'editable changed',
+    ]);
+    t.unlockCurrentSubtree();
+    await t.done();
+  });
+
   it('tests adding, deleting, undoing, and redoing', async function() {
     let t = new TestCase(['']);
     t.sendKey('i');

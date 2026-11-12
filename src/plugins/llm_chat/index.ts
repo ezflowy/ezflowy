@@ -20,11 +20,11 @@ type OutlineNode = {
 
 function getIndent(depth: number): string {
   let prefix = new Array(depth).join('    ');
-  return depth == 0 ? prefix : prefix + '* ';
+  return depth === 0 ? prefix : prefix + '* ';
 }
 
 function cleanLine(text: string): string {
-  //return text;
+  // return text;
   let cleaned = text.trim();
   while (true) {
     const next = cleaned
@@ -444,8 +444,14 @@ registerPlugin({
       const settings = await getSettings(api);
       const outline = await buildOutlineText(promptPath, api);
 
+      const editLock = session.acquireEditLock(
+        await session.document.getSubtreeRows(promptPath.row)
+      );
+
       session.showMessage(`Sending to ChatGPT (${settings.model})...`, { time: 0 });
 
+      const completeRequest = async () => {
+        try {
       let replyText: string;
       try {
         const headers: { [key: string]: string } = {
@@ -479,7 +485,7 @@ registerPlugin({
                 'Join sentences which are split across lines. ' +
                 'Within text blocks, split sentences into separate lines and indent one level under the first sentence of the block. ' +
                 `\\n\\n${outline}`,
-            },],
+            }],
           }),
         });
 
@@ -514,15 +520,26 @@ registerPlugin({
         session.showMessage('LLM reply contained no new bullets to add', { text_class: 'error' });
         return;
       }
-      const existingChildren = await session.document.getChildren(promptPath);
-      if (existingChildren.length > 0) {
-        await session.delBlocks(promptPath.row, 0, existingChildren.length);
-      }
-      await session.addBlocks(promptPath, 0, replyBlocks);
-      if (await session.document.collapsed(promptPath.row)) {
-        await session.document.setCollapsed(promptPath.row, false);
-      }
+      await session.bypassEditLocks(async () => {
+        const existingChildren = await session.document.getChildren(promptPath);
+        if (existingChildren.length > 0) {
+          await session.delBlocks(promptPath.row, 0, existingChildren.length);
+        }
+        await session.addBlocks(promptPath, 0, replyBlocks);
+        if (await session.document.collapsed(promptPath.row)) {
+          await session.document.setCollapsed(promptPath.row, false);
+        }
+      });
       session.showMessage('LLM reply inserted below current bullet', { text_class: 'success' });
+        } finally {
+          session.releaseEditLock(editLock);
+        }
+      };
+
+      completeRequest().catch((error) => {
+        const message = (error as Error).message || 'LLM request failed';
+        session.showMessage(`LLM error: ${message}`, { text_class: 'error' });
+      });
     },
   );
 

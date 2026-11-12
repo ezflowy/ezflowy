@@ -457,7 +457,6 @@ $(document).ready(async () => {
   keyHandler.on('handledKey', renderMain); // fire and forget
 
   session.on('modeChange', renderMain); // fire and forget
-
   keyBindings.on('applied_hotkey_settings', (hotkey_settings) => {
     clientStore.setClientSetting('hotkeys', hotkey_settings);
     renderMain(); // fire and forget

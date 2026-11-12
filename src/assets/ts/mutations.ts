@@ -57,6 +57,9 @@ const validateRowInsertion = async function(
 };
 
 export default class Mutation {
+  public async affectedRows(_session: Session): Promise<Array<Row>> {
+    return [];
+  }
   public str() {
     return '';
   }
@@ -91,6 +94,10 @@ export class AddChars extends Mutation {
 
   public str() {
     return `row ${this.row}, col ${this.col}, nchars ${this.chars.length}`;
+  }
+
+  public async affectedRows() {
+    return [this.row];
   }
 
   public async mutate(session: Session) {
@@ -128,6 +135,10 @@ export class DelChars extends Mutation {
 
   public str() {
     return `row ${this.row}, col ${this.col}, nchars ${this.nchars}`;
+  }
+
+  public async affectedRows() {
+    return [this.row];
   }
 
   public async mutate(session: Session) {
@@ -177,6 +188,10 @@ export class ChangeChars extends Mutation {
 
   public str() {
     return `change row ${this.row}, col ${this.col}, nchars ${this.nchars}`;
+  }
+
+  public async affectedRows() {
+    return [this.row];
   }
 
   public async mutate(session: Session) {
@@ -238,6 +253,14 @@ export class MoveBlock extends Mutation {
     return `move ${this.path.row} from ${this.old_parent.row} to ${this.parent.row}`;
   }
 
+  public async affectedRows(session: Session) {
+    return [
+      this.old_parent.row,
+      this.parent.row,
+      ...await session.document.getSubtreeRows(this.path.row),
+    ];
+  }
+
   public async validate(session: Session) {
     if (this.path.isRoot()) {
       session.showMessage('Cannot detach root', {text_class: 'error'});
@@ -292,6 +315,14 @@ export class AttachBlocks extends Mutation {
     return `parent ${this.parent}, index ${this.index}`;
   }
 
+  public async affectedRows(session: Session) {
+    const rows: Array<Row> = [this.parent];
+    for (const row of this.cloned_rows) {
+      rows.push(...await session.document.getSubtreeRows(row));
+    }
+    return rows;
+  }
+
   public async validate(session: Session) {
     for (let i = 0; i < this.cloned_rows.length; i++) {
       const row = this.cloned_rows[i];
@@ -333,6 +364,17 @@ export class DetachBlocks extends Mutation {
 
   public str() {
     return `parent ${this.parent}, index ${this.index}, nrows ${this.nrows}`;
+  }
+
+  public async affectedRows(session: Session) {
+    const rows: Array<Row> = [this.parent];
+    const children = await session.document._getChildren(
+      this.parent, this.index, this.index + this.nrows - 1
+    );
+    for (const row of children) {
+      rows.push(...await session.document.getSubtreeRows(row));
+    }
+    return rows;
   }
 
   public async mutate(session: Session) {
@@ -436,6 +478,10 @@ export class AddBlocks extends Mutation {
     return `parent ${this.parent.row}, index ${this.index}`;
   }
 
+  public async affectedRows() {
+    return [this.parent.row];
+  }
+
   public async mutate(session: Session) {
     let index = this.index;
 
@@ -474,6 +520,9 @@ export class ToggleBlock extends Mutation {
   }
   public str() {
     return `row ${this.row}`;
+  }
+  public async affectedRows() {
+    return [this.row];
   }
   public async mutate(session: Session) {
     await session.document.toggleCollapsed(this.row);

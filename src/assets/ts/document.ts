@@ -389,6 +389,14 @@ export default class Document extends EventEmitter {
     return (await this._getChildren(parent_path.row)).map(row => parent_path.child(row));
   }
 
+  public async getSubtreeRows(row: Row): Promise<Array<Row>> {
+    const rows = [row];
+    for (const child of await this._getChildren(row)) {
+      rows.push(...await this.getSubtreeRows(child));
+    }
+    return rows;
+  }
+
   public async hasChildren(row: Row) {
     return (await this._getChildren(row)).length > 0;
   }

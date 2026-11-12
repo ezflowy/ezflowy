@@ -57,6 +57,7 @@ class RowComponent extends React.Component<RowProps, {}> {
   public render() {
     const session = this.props.session;
     const path = this.props.path;
+    const locked = session.isRowEditLocked(path.row);
     const lineData = this.props.cached.line;
     const cursorsTree = this.props.cursorsTree;
 
@@ -116,8 +117,10 @@ class RowComponent extends React.Component<RowProps, {}> {
     const infoChildren = session.applyHook('renderAfterLine', [], hooksInfo);
 
     return (
-      <div key='text' className='node-text'
+      <div key='text' className={`node-text${locked ? ' node-text--locked' : ''}`}
         onClick={this.onClick}
+        aria-readonly={locked}
+        title={locked ? 'Locked while waiting for an LLM response' : undefined}
         style={this.props.style}
       >
         {results}

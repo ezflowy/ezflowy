@@ -30,6 +30,18 @@
 - Start the bridge with `npm run agent-server`; configure its URL, token, working directory, and default provider through the LLM Agent plugin action.
 - Verification on 2026-11-11: TypeScript typecheck passed, all 259 tests passed, and the production build completed with the repository's existing warnings. Live socket binding was blocked by the execution sandbox and was not browser-tested.
 
+## LLM response edit locks
+
+- LLM Chat no longer blocks the global key queue while awaiting `fetch`; the submitted node and its descendants are locked while the rest of the outline remains editable.
+- LLM Chat replaces the submitted node's children when the response arrives, so its lock protects that entire subtree and is bypassed only for the plugin-owned replacement.
+- LLM Agent locks only the generated status and response subtree while streaming. Newly generated response rows are added to the active lock, while the source prompt and unrelated outline rows remain editable.
+- LLM Agent releases its output lock on completion, bridge failure, or socket closure. The final resume and `Next prompt:` rows are editable after completion.
+- Edit locks are enforced at the mutation layer, including structural edits, undo, and redo. Mutations report their affected rows so operations that would indirectly alter a locked descendant are also rejected.
+- Locked rows receive a shared visual cue: shaded background, reduced opacity, lock glyph, `not-allowed` cursor, tooltip, and `aria-readonly` state.
+- `Session` emits `editLocksChanged`; the visible `SessionComponent` subscribes directly and refreshes immediately when rows are locked or unlocked, without requiring a click.
+- Verification on 2026-11-12: `npm run verify` passed with 260 tests, and the production build succeeded with the existing Firebase source-map and LLM Chat ESLint warnings.
+- Preserve the unrelated untracked `ezflowy.iml` file.
+
 ## Lint gotcha (upstream vimflowy)
 
 - `src/assets/ts/components/settings/backendSettings.tsx` builds a Firebase console URL with a *literal* `'${firebaseProjectId}'` placeholder string (not interpolation). That trips ESLint `no-template-curly-in-string`; inlining it or concatenating the pieces just shifts the warning (e.g. `no-useless-concat`). Fixed with an inline `eslint-disable-next-line` comment documenting the placeholder.

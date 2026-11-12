@@ -72,6 +72,8 @@ export default class Session extends EventEmitter {
   public menu: Menu | null = null;
 
   private mutations: Array<Mutation> = [];
+  private editLocks: Map<object, Set<Row>> = new Map();
+  private editLockBypass: number = 0;
   private history: Array<HistoryLogEntry> = [];
   private historyIndex: number = 0;
   public jumpHistory: Array<JumpLogEntry> = [];
@@ -341,11 +343,33 @@ export default class Session extends EventEmitter {
     await this.changeView(state.viewRoot);
   }
 
+  private async mutationTouchesEditLock(mutation: Mutation): Promise<boolean> {
+    if (this.editLockBypass > 0 || this.editLocks.size === 0) {
+      return false;
+    }
+    const affectedRows = await mutation.affectedRows(this);
+    return affectedRows.some(row =>
+      Array.from(this.editLocks.values()).some(rows => rows.has(row))
+    );
+  }
+
+  private showEditLockMessage() {
+    this.showMessage('This branch is locked while waiting for an LLM response', {
+      text_class: 'error',
+    });
+  }
+
   public async undo() {
     if (this.historyIndex > 0) {
       const oldState = this.history[this.historyIndex];
+      const newState = this.history[this.historyIndex - 1];
+      for (let j = oldState.index - 1; j > newState.index - 1; j--) {
+        if (await this.mutationTouchesEditLock(this.mutations[j])) {
+          this.showEditLockMessage();
+          return;
+        }
+      }
       this.historyIndex -= 1;
-      const newState = this.history[this.historyIndex];
 
       logger.debug('UNDOING <');
       for (let j = oldState.index - 1; j > newState.index - 1; j--) {
@@ -371,8 +395,14 @@ export default class Session extends EventEmitter {
   public async redo() {
     if (this.historyIndex < this.history.length - 1) {
       const oldState = this.history[this.historyIndex];
+      const newState = this.history[this.historyIndex + 1];
+      for (let j = oldState.index; j < newState.index; j++) {
+        if (await this.mutationTouchesEditLock(this.mutations[j])) {
+          this.showEditLockMessage();
+          return;
+        }
+      }
       this.historyIndex += 1;
-      const newState = this.history[this.historyIndex];
 
       logger.debug('REDOING <');
       for (let j = oldState.index; j < newState.index; j++) {
@@ -406,6 +436,11 @@ export default class Session extends EventEmitter {
       return false;
     }
 
+    if (await this.mutationTouchesEditLock(mutation)) {
+      this.showEditLockMessage();
+      return false;
+    }
+
     if (this.historyIndex !== this.history.length - 1) {
       this.history = this.history.slice(0, this.historyIndex + 1);
       this.mutations = this.mutations.slice(0, this.history[this.historyIndex].index);
@@ -426,6 +461,40 @@ export default class Session extends EventEmitter {
 
     this.mutations.push(mutation);
     return true;
+  }
+
+  public acquireEditLock(rows: Array<Row>): object {
+    const token = {};
+    this.editLocks.set(token, new Set(rows));
+    this.emit('editLocksChanged');
+    return token;
+  }
+
+  public releaseEditLock(token: object) {
+    if (this.editLocks.delete(token)) {
+      this.emit('editLocksChanged');
+    }
+  }
+
+  public extendEditLock(token: object, rows: Array<Row>) {
+    const lockedRows = this.editLocks.get(token);
+    if (lockedRows) {
+      rows.forEach(row => lockedRows.add(row));
+      this.emit('editLocksChanged');
+    }
+  }
+
+  public isRowEditLocked(row: Row): boolean {
+    return Array.from(this.editLocks.values()).some(rows => rows.has(row));
+  }
+
+  public async bypassEditLocks<T>(callback: () => Promise<T>): Promise<T> {
+    this.editLockBypass += 1;
+    try {
+      return await callback();
+    } finally {
+      this.editLockBypass -= 1;
+    }
   }
 
   // TODO: do this in the mode

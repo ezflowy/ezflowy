@@ -43,6 +43,7 @@ class TestCase {
   protected register: Register;
   protected pluginManager: PluginsManager;
   protected prom: Promise<void>;
+  private editLock: object | null = null;
 
   constructor(serialized: Array<SerializedBlock> = [''], options: TestCaseOptions = {}) {
     this.docStore = new DocumentStore(new InMemory());
@@ -195,6 +196,34 @@ class TestCase {
                         'Unexpected cursor row');
       this._expectEqual(this.session.cursor.col, col,
                         'Unexpected cursor col');
+    });
+  }
+
+  public lockCurrentSubtree() {
+    return this._chain(async () => {
+      const rows = await this.document.getSubtreeRows(this.session.cursor.row);
+      this.editLock = this.session.acquireEditLock(rows);
+    });
+  }
+
+  public unlockCurrentSubtree() {
+    return this._chain(() => {
+      if (this.editLock !== null) {
+        this.session.releaseEditLock(this.editLock);
+        this.editLock = null;
+      }
+    });
+  }
+
+  public appendToLockedSubtree(text: string) {
+    return this._chain(async () => {
+      if (this.editLock === null) {
+        throw new Error('No locked subtree');
+      }
+      const added = await this.session.bypassEditLocks(
+        async () => await this.session.addBlocks(this.session.cursor.path, -1, [text])
+      );
+      this.session.extendEditLock(this.editLock, added.map(path => path.row));
     });
   }
 
