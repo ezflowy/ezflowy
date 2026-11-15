@@ -39,8 +39,10 @@ npm run agent-server
 In ezflowy:
 
 1. Open **Settings > Plugins** and enable **LLM Agent**.
-2. Run **Configure the LLM Agent bridge and provider**.
-3. Set the fields as follows:
+2. Return to the outline, create or select a node containing a prompt, and
+   press `Cmd-Shift-A` on macOS or `Ctrl-Shift-A` on other platforms.
+3. On the first run, the configuration dialog opens automatically. Set the
+   fields as follows:
 
    - **Agent:** Hermes
    - **Agent bridge WebSocket:** `ws://127.0.0.1:7331`
@@ -48,12 +50,17 @@ In ezflowy:
    - **Working directory:** the repository or directory in which Hermes should
      operate
 
+The registered configuration action does not currently have a menu button or
+default keyboard binding. The first-run dialog is therefore the normal way to
+configure the plugin.
+
 Hermes model and provider settings belong to Hermes itself; they are not
 configured by the ezflowy plugin.
 
 ## 4. Run and resume Hermes
 
-Create a node containing the prompt, place the cursor on that node, and press
+After saving the first-run configuration, the selected prompt runs
+automatically. For later prompts, place the cursor on the prompt node and press
 `Cmd-Shift-A` on macOS or `Ctrl-Shift-A` on other platforms. Hermes output is
 streamed into child nodes.
 

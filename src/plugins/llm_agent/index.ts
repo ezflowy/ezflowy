@@ -8,6 +8,7 @@ type ResumeInfo = { provider: Provider, sessionId: string };
 
 const pluginName = 'LLM Agent';
 const resumePattern = /^Agent resume \[(codex|cursor|hermes):(.+)]$/;
+export const llmAgentMappings = {'llm-agent-run': [['ctrl+A'], ['meta+A']]};
 
 async function getSettings(api: PluginApi): Promise<Settings> {
   const settings = await api.getData('settings', {
@@ -67,6 +68,7 @@ function settingsDialog(settings: Settings): Promise<Settings | null> {
     cancel.onclick = () => close(null);
     overlay.onmousedown = (event) => { if (event.target === overlay) { close(null); } };
     overlay.onkeydown = (event) => { event.stopPropagation(); if (event.key === 'Escape') { close(null); } };
+    overlay.onpaste = (event) => event.stopPropagation();
     dialog.onclick = (event) => event.stopPropagation();
     form.onsubmit = (event) => {
       event.preventDefault();
@@ -221,7 +223,6 @@ registerPlugin({
     };
     socket.onclose = releaseOutputLock;
   });
-  const mappings = {'llm-agent-run': [['ctrl+shift+a'], ['meta+shift+a']]};
-  api.registerDefaultMappings('NORMAL', mappings);
-  api.registerDefaultMappings('INSERT', mappings);
+  api.registerDefaultMappings('NORMAL', llmAgentMappings);
+  api.registerDefaultMappings('INSERT', llmAgentMappings);
 }, (api) => api.deregisterAll());
