@@ -44,6 +44,7 @@ class TestCase {
   protected pluginManager: PluginsManager;
   protected prom: Promise<void>;
   private editLock: object | null = null;
+  private copiedContent: string | null = null;
 
   constructor(serialized: Array<SerializedBlock> = [''], options: TestCaseOptions = {}) {
     this.docStore = new DocumentStore(new InMemory());
@@ -54,6 +55,9 @@ class TestCase {
 
     this.session = new Session(this.clientStore, this.document, {
       viewRoot: Path.root(),
+    });
+    this.session.on('copyToClipboard', (content) => {
+      this.copiedContent = content;
     });
 
     const config: Config = vimConfig;
@@ -239,10 +243,11 @@ class TestCase {
   }
 
   public expectNumMenuResults(num_results: number) {
-    return this._chain(() => {
+    return this._chain(async () => {
       if (this.session.menu === null) {
         throw new Error('Menu was null while expecting menu results');
       }
+      await this.session.menu.flush();
       this._expectEqual(this.session.menu.results.length, num_results,
                         'Unexpected number of results');
     });
@@ -271,6 +276,12 @@ class TestCase {
     return this._chain(async () => {
       let content = await this.session.exportContent(mimeType);
       this._expectEqual(content, expected, 'Unexpected export content');
+    });
+  }
+
+  public expectCopied(expected: string) {
+    return this._chain(() => {
+      this._expectEqual(this.copiedContent, expected, 'Unexpected clipboard content');
     });
   }
 }
