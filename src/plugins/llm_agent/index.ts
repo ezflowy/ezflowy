@@ -10,6 +10,28 @@ const pluginName = 'LLM Agent';
 const resumePattern = /^Agent resume \[(codex|cursor|hermes):(.+)]$/;
 export const llmAgentMappings = {'llm-agent-run': [['ctrl+A'], ['meta+A']]};
 
+export type AgentCompletion = {
+  response: string,
+  canResume: boolean,
+  followUp: string,
+};
+
+export function agentCompletion(response: string, code: number, error: string): AgentCompletion {
+  if (code === 0) {
+    return {
+      response: response || '(no response)',
+      canResume: true,
+      followUp: 'Next prompt: ',
+    };
+  }
+  const errorText = `Agent error: ${error.trim() || `exit ${code}`}`;
+  return {
+    response: response ? `${response.replace(/\s+$/, '')}\n\n${errorText}` : errorText,
+    canResume: false,
+    followUp: errorText,
+  };
+}
+
 async function getSettings(api: PluginApi): Promise<Settings> {
   const settings = await api.getData('settings', {
     provider: 'codex', bridgeUrl: 'ws://127.0.0.1:7331', bridgeToken: '', cwd: '',
@@ -189,22 +211,21 @@ registerPlugin({
       if (message.type === 'done') {
         try {
           if (pendingRender != null) { window.clearTimeout(pendingRender); }
+          const completion = agentCompletion(response, message.code, message.error || '');
+          response = completion.response;
           render();
           await renderQueue;
-          if (!response) { await setText(api, responseRows[0], '(no response)'); }
           await setText(api, statusPath, `Agent status [${message.code === 0 ? 'done' : 'error'} · ${provider}]`);
-          if (sessionId) {
+          if (completion.canResume && sessionId) {
             await session.bypassEditLocks(async () => {
               await session.addBlocks(statusPath, -1, [{
                 text: `Agent resume [${provider}:${sessionId}]`,
-                children: ['Next prompt: '],
+                children: [completion.followUp],
               }]);
             });
           } else {
             await session.bypassEditLocks(async () => {
-              await session.addBlocks(statusPath, -1, [
-                message.code === 0 ? 'Next prompt: ' : `Agent error: ${message.error || `exit ${message.code}`}`,
-              ]);
+              await session.addBlocks(statusPath, -1, [completion.followUp]);
             });
           }
         } finally {
