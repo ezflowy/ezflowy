@@ -1,0 +1,69 @@
+# Hermes Agent quickstart
+
+## 1. Verify Hermes
+
+Confirm that the Hermes CLI is available in the terminal environment that will
+run the bridge:
+
+```sh
+hermes --version
+hermes chat -q "Reply with OK" --format stream-json
+```
+
+The bridge uses this structured output mode and invokes `hermes --resume` for
+follow-up turns.
+
+## 2. Start the agent bridge
+
+From the ezflowy repository, start the bridge with a stable secret token:
+
+```sh
+EZFLOWY_AGENT_TOKEN='choose-a-long-random-token' npm run agent-server
+```
+
+It should report that it is listening on `ws://127.0.0.1:7331`. The bridge
+inherits its environment, including `PATH` and the Hermes model/provider
+configuration, from this terminal.
+
+If the bridge cannot find Hermes, ensure the directory containing the `hermes`
+executable is in `PATH` before starting it:
+
+```sh
+PATH="/path/to/hermes/bin:$PATH" \
+EZFLOWY_AGENT_TOKEN='choose-a-long-random-token' \
+npm run agent-server
+```
+
+## 3. Configure the plugin
+
+In ezflowy:
+
+1. Open **Settings > Plugins** and enable **LLM Agent**.
+2. Run **Configure the LLM Agent bridge and provider**.
+3. Set the fields as follows:
+
+   - **Agent:** Hermes
+   - **Agent bridge WebSocket:** `ws://127.0.0.1:7331`
+   - **Agent bridge token:** the token used when starting the bridge
+   - **Working directory:** the repository or directory in which Hermes should
+     operate
+
+Hermes model and provider settings belong to Hermes itself; they are not
+configured by the ezflowy plugin.
+
+## 4. Run and resume Hermes
+
+Create a node containing the prompt, place the cursor on that node, and press
+`Cmd-Shift-A` on macOS or `Ctrl-Shift-A` on other platforms. Hermes output is
+streamed into child nodes.
+
+After a completed turn, ezflowy creates an `Agent resume [hermes:...]` node
+with a `Next prompt:` child. Edit that child and use the same shortcut to
+continue the saved Hermes session.
+
+## Permissions
+
+The bridge does not automatically approve commands or permission requests. If
+Hermes stops because it needs information or permission, provide the answer in
+`Next prompt:` and resume the session. Configure an appropriately safe Hermes
+policy instead of launching it with blanket approval or force flags.
