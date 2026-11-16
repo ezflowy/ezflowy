@@ -72,3 +72,9 @@
 - Search reuses `BreadcrumbsComponent` and its line-rendering hooks. Its optional `compact` prop uses 12px text and a 3px bottom margin; normal page headers retain 20px text and a 10px margin. Search breadcrumbs are informational, with no click handler.
 - `definitions/menu.tsx` loads ancestor text when preparing results and supplies an optional `MenuResult.breadcrumbs` node, rendered by the menu component. Other menu results are unaffected.
 - Validation: `npm run verify` passed with 264 Mocha tests; ESLint on all four changed source files and `git diff --check` passed. Browser appearance has not been independently verified.
+
+## Lint cleanup (2026-11-16)
+
+- Removed the redundant `/* globals describe, it */` (and `afterEach` in `test/testcase.ts`) headers: ESLint's `react-app/jest` preset already provides the mocha globals, so the JSDoc `globals` comment made ESLint report `@typescript-eslint/no-redeclare` for every test file. 66 ESLint warnings across 33 files dropped to 0.
+- Also fixed the remaining warnings: unnecessary `\\.` / `\\'` escapes (`src/plugins/llm_chat/index.ts`, `src/plugins/examples/index.ts`) and the mixed `&&`/`||` in the LLM chat reply extraction, parenthesized to `(message && message.content) || ''`.
+- Verified: `npm run verify` (tslint + tsc + 269 tests) passed, ESLint is clean, `npm run build` completed with only the pre-existing Firebase source-map warnings, and `git diff --check` is clean.

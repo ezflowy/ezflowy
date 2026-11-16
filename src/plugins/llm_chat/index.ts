@@ -29,7 +29,7 @@ function cleanLine(text: string): string {
   while (true) {
     const next = cleaned
       .replace(/^[-*+•◦▪‣·]\s+/, '')
-      .replace(/^\d+[\.)]\s+/, '')
+      .replace(/^\d+[.]\s+/, '')
       .replace(/^\[[ xX]\]\s+/, '')
       .trimStart();
     if (next === cleaned) {
@@ -497,7 +497,7 @@ registerPlugin({
 
         const choice = payload && payload.choices && payload.choices[0];
         const message = choice && choice.message;
-        replyText = (message && message.content || '').trim();
+        replyText = ((message && message.content) || '').trim();
         if (!replyText) {
           throw new Error('Empty response from model');
         }
