@@ -12,9 +12,11 @@ npm run agent-server
 
 The bridge listens only on `127.0.0.1` by default and prints a generated access token. In ezflowy's plugin settings, enable **LLM Agent**, run **Configure the LLM Agent bridge and provider**, and paste that token and the agent working directory. Set `EZFLOWY_AGENT_TOKEN` when starting the bridge if the token should remain stable across restarts.
 
-Put a prompt in a node and press Ctrl-Shift-A (Cmd-Shift-A on macOS). Output is streamed into child nodes. The plugin stores the provider and resume ID in a visible `Agent resume [...]` node and adds an editable `Next prompt:` child. Edit that child and use the same shortcut to continue the conversation.
+Put a prompt in a node and press Ctrl-Shift-A (Cmd-Shift-A on macOS). The prompt includes the selected node and all descendants, including collapsed descendants, as nested list items. If any descendant is an `Agent resume` node, only the selected node’s text is sent; all descendants are excluded. Output is streamed into child nodes. The plugin stores the provider and resume ID in a visible `Agent resume [...]` node and adds an editable `Next prompt:` child. Edit that child (or add descendants beneath it) and use the same shortcut to continue the conversation.
 
 ## Questions and permissions
+
+The selected node itself does not trigger descendant exclusion: selecting an `Agent resume` node includes its descendants unless another `Agent resume` node appears beneath it.
 
 The bridge deliberately does not auto-approve commands. It runs each turn in the agent's structured, non-interactive mode and then exits the CLI process. If an agent needs information or a permission its policy does not grant, its request or refusal remains in the outline. Answer it in `Next prompt:` and resume the saved conversation.
 

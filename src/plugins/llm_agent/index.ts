@@ -117,6 +117,25 @@ function promptText(text: string): string {
   return text.replace(/^Next prompt:\s*/, '').replace(/^Answer:\s*/, '').trim();
 }
 
+export async function buildAgentPrompt(path: Path, document: PluginApi['session']['document']): Promise<string> {
+  const lines: Array<string> = [];
+  const ancestors = new Set<number>();
+  let hasResume = false;
+  async function walk(current: Path, depth: number): Promise<void> {
+    const text = await document.getText(current.row);
+    if (depth > 0 && /^Agent resume\b/.test(text.trim())) { hasResume = true; return; }
+    if (ancestors.has(current.row)) { return; }
+    lines.push(depth === 0 ? promptText(text) : `${'  '.repeat(depth - 1)}- ${text}`);
+    ancestors.add(current.row);
+    for (const child of await document.getChildren(current)) {
+      await walk(child, depth + 1);
+    }
+    ancestors.delete(current.row);
+  }
+  await walk(path, 0);
+  return hasResume ? promptText(await document.getText(path.row)) : lines.join('\n').trim();
+}
+
 async function setText(api: PluginApi, path: Path, text: string): Promise<void> {
   if (await api.session.document.isValidPath(path)) {
     await api.session.document.setLine(path.row, text.split(''));
@@ -135,7 +154,7 @@ registerPlugin({
   api.registerAction('llm-agent-run', 'Run or resume an agent using the current node as the prompt', async ({session}) => {
     const sourcePath = session.cursor.path;
     if (!(await session.document.isValidPath(sourcePath))) { return; }
-    const source = promptText(await session.document.getText(sourcePath.row));
+    const source = await buildAgentPrompt(sourcePath, session.document);
     if (!source) { session.showMessage('Enter an agent prompt in this node first', {text_class: 'error'}); return; }
     let settings = await getSettings(api);
     if (!settings.cwd || !settings.bridgeToken) {
