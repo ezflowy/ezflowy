@@ -156,12 +156,10 @@ registerPlugin({
     if (!(await session.document.isValidPath(sourcePath))) { return; }
     const source = await buildAgentPrompt(sourcePath, session.document);
     if (!source) { session.showMessage('Enter an agent prompt in this node first', {text_class: 'error'}); return; }
-    let settings = await getSettings(api);
-    if (!settings.cwd || !settings.bridgeToken) {
-      const configured = await settingsDialog(settings);
-      if (!configured) { return; }
-      settings = configured; await api.setData('settings', settings);
-    }
+    const configured = await settingsDialog(await getSettings(api));
+    if (!configured) { return; }
+    await api.setData('settings', configured);
+    const settings = configured;
     const resume = await findResume(sourcePath, api);
     const provider = resume ? resume.provider : settings.provider;
     const rows = await session.addBlocks(sourcePath, -1, [{

@@ -33,6 +33,7 @@
 - Verification on 2026-11-16: `npm run verify` passed with 270 tests and targeted ESLint passed for prompt serialization. An additional selected-resume regression test subsequently passed with all 6 LLM Agent tests.
 - Permission requests are not auto-approved. The initial implementation uses safe turn-based follow-ups; native mid-turn request/response support requires provider-specific Hermes gateway, Codex app-server, and Cursor ACP adapters.
 - Start the bridge with `npm run agent-server`; configure its URL, token, working directory, and default provider through the LLM Agent plugin action.
+- The settings dialog now opens on every run, not just when the working directory or token was missing (first-run-only dialog removed on 2026-11-17): the run action always shows the prefilled dialog before running, canceling aborts the run, and submitted values are saved. `QUICKSTART.md` was updated to describe the per-run dialog.
 - Verification on 2026-11-11: TypeScript typecheck passed, all 259 tests passed, and the production build completed with the repository's existing warnings. Live socket binding was blocked by the execution sandbox and was not browser-tested.
 - Failure-display fix verification on 2026-11-15: `npm run verify` passed (TSLint, TypeScript, and all 267 tests), targeted ESLint passed, and `git diff --check` was clean.
 

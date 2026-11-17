@@ -54,8 +54,8 @@ In ezflowy:
 1. Open **Settings > Plugins** and enable **LLM Agent**.
 2. Return to the outline, create or select a node containing a prompt, and
    press `Cmd-Shift-A` on macOS or `Ctrl-Shift-A` on other platforms.
-3. On the first run, the configuration dialog opens automatically. Set the
-   fields as follows:
+3. When you run the agent, the configuration dialog opens automatically. Set
+   the fields as follows:
 
    - **Agent:** Hermes
    - **Agent bridge WebSocket:** `ws://127.0.0.1:7331`
@@ -64,17 +64,18 @@ In ezflowy:
      operate
 
 The registered configuration action does not currently have a menu button or
-default keyboard binding. The first-run dialog is therefore the normal way to
-configure the plugin.
+default keyboard binding. The per-run configuration dialog is therefore the
+normal way to configure the plugin; it opens on every run and shows the saved
+values.
 
 Hermes model and provider settings belong to Hermes itself; they are not
 configured by the ezflowy plugin.
 
 ## 4. Run and resume Hermes
 
-After saving the first-run configuration, the selected prompt runs
-automatically. For later prompts, place the cursor on the prompt node and press
-`Cmd-Shift-A` on macOS or `Ctrl-Shift-A` on other platforms. Hermes output is
+After saving the configuration, the selected prompt runs automatically. For
+later prompts, place the cursor on the prompt node and press `Cmd-Shift-A` on
+macOS or `Ctrl-Shift-A` on other platforms. Hermes output is
 streamed into child nodes.
 
 After a completed turn, ezflowy creates an `Agent resume [hermes:...]` node
