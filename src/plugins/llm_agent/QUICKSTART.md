@@ -34,6 +34,19 @@ EZFLOWY_AGENT_TOKEN='choose-a-long-random-token' \
 npm run agent-server
 ```
 
+To run the bridge on a different port or host, set `EZFLOWY_AGENT_PORT` (default
+`7331`) and `EZFLOWY_AGENT_HOST` (default `127.0.0.1`):
+
+```sh
+EZFLOWY_AGENT_PORT=8080 \
+EZFLOWY_AGENT_TOKEN='choose-a-long-random-token' \
+npm run agent-server
+```
+
+Whatever address you start the bridge on, use the same one as the plugin's
+**Agent bridge WebSocket** value in step 3 (for the example above,
+`ws://127.0.0.1:8080`).
+
 ## 3. Configure the plugin
 
 In ezflowy:

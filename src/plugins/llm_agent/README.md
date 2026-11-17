@@ -12,6 +12,8 @@ npm run agent-server
 
 The bridge listens only on `127.0.0.1` by default and prints a generated access token. In ezflowy's plugin settings, enable **LLM Agent**, run **Configure the LLM Agent bridge and provider**, and paste that token and the agent working directory. Set `EZFLOWY_AGENT_TOKEN` when starting the bridge if the token should remain stable across restarts.
 
+To change the listen address, set `EZFLOWY_AGENT_PORT` (default `7331`) and `EZFLOWY_AGENT_HOST` (default `127.0.0.1`) when starting the bridge, for example `EZFLOWY_AGENT_PORT=8080 npm run agent-server`. Update the plugin's bridge URL to match, e.g. `ws://127.0.0.1:8080`.
+
 Put a prompt in a node and press Ctrl-Shift-A (Cmd-Shift-A on macOS). The prompt includes the selected node and all descendants, including collapsed descendants, as nested list items. If any descendant is an `Agent resume` node, only the selected node’s text is sent; all descendants are excluded. Output is streamed into child nodes. The plugin stores the provider and resume ID in a visible `Agent resume [...]` node and adds an editable `Next prompt:` child. Edit that child (or add descendants beneath it) and use the same shortcut to continue the conversation.
 
 ## Questions and permissions
