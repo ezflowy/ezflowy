@@ -84,6 +84,14 @@ function sessionFromEvent(event: any): string {
     (event.type === 'thread.started' ? event.thread_id : '') || '';
 }
 
+// Agents often start their reply with blank lines; an outline does not need them.
+// Drop the leading blank lines once; interior blank lines stay untouched.
+export function stripLeadingBlankLines(text: string, state: {started: boolean}): string {
+  if (state.started) { return text; }
+  state.started = true;
+  return text.replace(/^[ \t\r\n]+/, '');
+}
+
 wss.on('connection', (socket) => {
   let child: ChildProcessWithoutNullStreams | null = null;
   const send = (payload: object) => {
@@ -115,6 +123,7 @@ wss.on('connection', (socket) => {
       return;
     }
     const invocation = commandFor(message);
+    const textState = {started: false};
     send({type: 'status', requestId: message.requestId, status: 'starting'});
     child = spawn(invocation.command, invocation.args, {
       cwd: message.cwd,
@@ -138,13 +147,13 @@ wss.on('connection', (socket) => {
           const event = JSON.parse(line);
           const sessionId = sessionFromEvent(event);
           if (sessionId) { send({type: 'session', requestId: message.requestId, sessionId}); }
-          const text = textFromEvent(message.provider, event);
+          const text = stripLeadingBlankLines(textFromEvent(message.provider, event), textState);
           if (text) { send({type: 'text', requestId: message.requestId, text}); }
           const progress = progressFromEvent(event);
           if (progress) { send({type: 'status', requestId: message.requestId, status: progress}); }
           send({type: 'raw', requestId: message.requestId, event});
         } catch (_error) {
-          send({type: 'text', requestId: message.requestId, text: `${line}\n`});
+          send({type: 'text', requestId: message.requestId, text: stripLeadingBlankLines(`${line}\n`, textState)});
         }
       });
     });
@@ -155,7 +164,8 @@ wss.on('connection', (socket) => {
     child.on('close', (code) => {
       const match = stderr.match(/session_id:\s*([^\s]+)/i);
       if (match) { send({type: 'session', requestId: message.requestId, sessionId: match[1]}); }
-      if (stdout.trim()) { send({type: 'text', requestId: message.requestId, text: stdout}); }
+      const rest = stripLeadingBlankLines(stdout, textState);
+      if (rest.trim()) { send({type: 'text', requestId: message.requestId, text: rest}); }
       send({
         type: 'done', requestId: message.requestId, code: code == null ? 1 : code,
         error: code === 0 ? '' : stderr.trim(),
@@ -168,7 +178,9 @@ wss.on('connection', (socket) => {
   });
 });
 
-server.listen(port, host, () => {
-  process.stdout.write(`LLM Agent bridge listening on ws://${host}:${port}\n`);
-  process.stdout.write(`LLM Agent bridge token: ${token}\n`);
-});
+if (require.main === module) {
+  server.listen(port, host, () => {
+    process.stdout.write(`LLM Agent bridge listening on ws://${host}:${port}\n`);
+    process.stdout.write(`LLM Agent bridge token: ${token}\n`);
+  });
+}

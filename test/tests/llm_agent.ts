@@ -3,6 +3,7 @@ import Document from '../../src/assets/ts/document';
 import Path from '../../src/assets/ts/path';
 import { InMemory } from '../../src/shared/data_backend';
 import { agentCompletion, buildAgentPrompt, llmAgentMappings } from '../../src/plugins/llm_agent';
+import { stripLeadingBlankLines } from '../../server/agent_server';
 
 describe('LLM Agent plugin', function() {
   it('includes descendants when only the selected node is an Agent resume node', async function() {
@@ -72,6 +73,23 @@ describe('LLM Agent plugin', function() {
     const completion = agentCompletion('', 0, 'ignored stderr');
     if (completion.response !== '(no response)' || !completion.canResume || completion.followUp !== 'Next prompt: ') {
       throw new Error('Successful completion behavior changed');
+    }
+  });
+
+  it('drops only the leading blank lines an agent streams before its reply', function() {
+    const state = {started: false};
+    if (stripLeadingBlankLines('\n\n', state) !== '') {
+      throw new Error('Leading blank lines were not stripped');
+    }
+    if (stripLeadingBlankLines('Hello\n\nWorld', state) !== 'Hello\n\nWorld') {
+      throw new Error('Interior blank lines must stay');
+    }
+    if (stripLeadingBlankLines('Second paragraph', state) !== 'Second paragraph') {
+      throw new Error('Only the leading blank lines of a run may be stripped');
+    }
+    const fresh = {started: false};
+    if (stripLeadingBlankLines('No leading blanks', fresh) !== 'No leading blanks') {
+      throw new Error('Clean first text was modified');
     }
   });
 });
