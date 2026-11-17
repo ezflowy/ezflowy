@@ -17,7 +17,7 @@
 - Keyboard tabbing and initial dialog focus were unaffected; the fix targets mouse-click focus retention.
 - Verification completed on 2026-11-11: TypeScript typecheck passed, all 259 tests passed, and the production build completed with existing warnings.
 - Initial implementation was committed as `4ab9eb4 Combine LLM settings prompts into dialog` and pushed to `origin/master`.
-- Preserve the unrelated untracked `ezflowy.iml` file.
+- `ezflowy.iml` (IntelliJ module file) is now tracked; committed as `dd23bed Add IntelliJ IDEA module file` on 2026-11-17.
 
 ## LLM Agent plugin
 
@@ -56,7 +56,7 @@
 - Locked rows receive a shared visual cue: shaded background, reduced opacity, lock glyph, `not-allowed` cursor, tooltip, and `aria-readonly` state.
 - `Session` emits `editLocksChanged`; the visible `SessionComponent` subscribes directly and refreshes immediately when rows are locked or unlocked, without requiring a click.
 - Verification on 2026-11-12: `npm run verify` passed with 260 tests, and the production build succeeded with the existing Firebase source-map and LLM Chat ESLint warnings.
-- Preserve the unrelated untracked `ezflowy.iml` file.
+- `ezflowy.iml` (IntelliJ module file) is now tracked; committed as `dd23bed Add IntelliJ IDEA module file` on 2026-11-17.
 
 ## Agent status and streaming repaint (2026-11-17)
 
