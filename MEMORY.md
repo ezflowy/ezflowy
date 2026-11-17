@@ -37,6 +37,14 @@
 - Verification on 2026-11-11: TypeScript typecheck passed, all 259 tests passed, and the production build completed with the repository's existing warnings. Live socket binding was blocked by the execution sandbox and was not browser-tested.
 - Failure-display fix verification on 2026-11-15: `npm run verify` passed (TSLint, TypeScript, and all 267 tests), targeted ESLint passed, and `git diff --check` was clean.
 
+## Hermes history visibility (2026-11-17)
+
+- Hermes defaults finite `chat -q` runs to source `oneshot`, which human history pickers hide. Read-only inspection of the installed Hermes implementation and local state database confirmed this source exists for saved runs; a missing picker entry does not mean the transcript was lost.
+- `server/agent_server.ts` now adds `--source cli` for new Hermes conversations, making outline conversations eligible for `/resume` history. Resumed runs retain their original source and receive no creation-source override. Restart `npm run agent-server` after updating.
+- Existing hidden conversations can be opened directly using `/resume SESSION_ID` in Hermes or `hermes --resume SESSION_ID` in a terminal. Copy the ID from the outline's `Agent resume [hermes:SESSION_ID]` node. This fix does not migrate existing session records.
+- `src/plugins/llm_agent/QUICKSTART.md` documents the source selection, bridge restart, and older-session recovery.
+- Validation under Node 22.22.2: `npm run verify` passed (TSLint, TypeScript, 271 Mocha tests), targeted ESLint on the bridge passed, fresh/resumed Hermes argument checks passed, and `git diff --check` was clean. Live conversation creation and picker visibility were not tested.
+
 ## LLM response edit locks
 
 - LLM Chat no longer blocks the global key queue while awaiting `fetch`; the submitted node and its descendants are locked while the rest of the outline remains editable.

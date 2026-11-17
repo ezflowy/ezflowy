@@ -40,6 +40,10 @@ function commandFor(message: RunMessage): {command: string, args: Array<string>}
   }
   const args = message.resumeId ? ['--resume', message.resumeId] : [];
   args.push('chat', '-q', message.prompt, '--format', 'stream-json');
+  if (!message.resumeId) {
+    // These are user conversations: Hermes hides its default oneshot source from /resume.
+    args.push('--source', 'cli');
+  }
   return {command: 'hermes', args};
 }
 

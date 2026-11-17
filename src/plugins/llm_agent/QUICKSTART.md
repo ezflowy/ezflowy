@@ -11,7 +11,14 @@ hermes chat -q "Reply with OK" --format stream-json
 ```
 
 The bridge uses this structured output mode and invokes `hermes --resume` for
-follow-up turns.
+follow-up turns. New conversations use `--source cli` so Hermes includes them
+in its `/resume` history instead of hiding them as one-shot automation.
+Restart the bridge after updating it for this change to take effect.
+
+Older conversations remain saved but may be hidden from the history picker.
+Copy the session ID from the outline's `Agent resume [hermes:SESSION_ID]` node
+and use `/resume SESSION_ID` in Hermes (or `hermes --resume SESSION_ID` from
+the terminal) to open one directly.
 
 ## 2. Start the agent bridge
 
