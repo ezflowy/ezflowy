@@ -57,6 +57,13 @@
 - Verification on 2026-11-12: `npm run verify` passed with 260 tests, and the production build succeeded with the existing Firebase source-map and LLM Chat ESLint warnings.
 - Preserve the unrelated untracked `ezflowy.iml` file.
 
+## Agent status and streaming repaint (2026-11-17)
+
+- Replacing existing Agent status or response text updated the document cache without notifying the outline to render. New response rows triggered lock-change notifications, so repaint appeared to depend on adding lines or clicking in the outline.
+- `Document.setLine()` now emits `lineChanged` after updating the cache and persisting the text. `SessionComponent` subscribes through its existing promise-debounced update function and removes the listener on unmount. This covers status replacements and character streaming within existing rows.
+- Regression coverage in `test/tests/line_repaint.ts` checks notifications with current cached text, unchanged row structure, and listener cleanup. Live browser repaint has not been independently verified.
+- Validation under Node 22.22.2: `npm run verify` passed (TSLint, TypeScript, 272 Mocha tests), targeted ESLint passed, and `git diff --check` passed. `npm run build` succeeded with the existing Firebase source-map warnings and outdated Browserslist-data notice.
+
 ## Lint gotcha (upstream vimflowy)
 
 - `src/assets/ts/components/settings/backendSettings.tsx` builds a Firebase console URL with a *literal* `'${firebaseProjectId}'` placeholder string (not interpolation). That trips ESLint `no-template-curly-in-string`; inlining it or concatenating the pieces just shifts the warning (e.g. `no-useless-concat`). Fixed with an inline `eslint-disable-next-line` comment documenting the placeholder.

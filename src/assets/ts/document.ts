@@ -345,6 +345,7 @@ export default class Document extends EventEmitter {
   public async setLine(row: Row, line: Line) {
     this.cache.setLine(row, line);
     await this.store.setLine(row, line);
+    this.emit('lineChanged', row);
   }
 
   // get word at this location
