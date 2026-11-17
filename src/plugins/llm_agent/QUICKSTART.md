@@ -20,6 +20,12 @@ Copy the session ID from the outline's `Agent resume [hermes:SESSION_ID]` node
 and use `/resume SESSION_ID` in Hermes (or `hermes --resume SESSION_ID` from
 the terminal) to open one directly.
 
+The plugin does not migrate older history or fill missing session titles.
+Hermes source classification and titles are separate: a visible saved session
+may still have no title. The `/resume` recent list shows only 10 sessions at
+a time. For Codex and Cursor history commands, see
+[Provider history and resume](README.md#provider-history-and-resume).
+
 ## 2. Start the agent bridge
 
 From the ezflowy repository, start the bridge with a stable secret token:

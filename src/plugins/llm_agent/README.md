@@ -16,6 +16,65 @@ To change the listen address, set `EZFLOWY_AGENT_PORT` (default `7331`) and `EZF
 
 Put a prompt in a node and press Ctrl-Shift-A (Cmd-Shift-A on macOS). The prompt includes the selected node and all descendants, including collapsed descendants, as nested list items. If any descendant is an `Agent resume` node, only the selected node’s text is sent; all descendants are excluded. Output is streamed into child nodes. The plugin stores the provider and resume ID in a visible `Agent resume [...]` node and adds an editable `Next prompt:` child. Edit that child (or add descendants beneath it) and use the same shortcut to continue the conversation.
 
+## Provider history and resume
+
+The outline's `Agent resume [provider:SESSION_ID]` node stores the provider's
+session ID. Follow-ups continue that session through the same bridge. History
+visibility also depends on the provider's own filters; a missing picker entry
+does not necessarily mean the conversation was not saved. Use the same local
+account and provider configuration as the bridge when looking for a session.
+
+### Codex
+
+The bridge starts `codex exec --json` without `--ephemeral`, so sessions are
+persisted by default. Follow-ups use `codex exec resume --json SESSION_ID`.
+The interactive resume picker normally excludes these non-interactive runs.
+To include them across working directories:
+
+```sh
+codex resume --include-non-interactive --all
+```
+
+`--include-non-interactive` includes exec sessions; `--all` removes the
+working-directory filter. To open a known session directly:
+
+```sh
+codex resume SESSION_ID
+```
+
+These options were checked against the installed CLI help. See the
+[Codex CLI reference](https://learn.chatgpt.com/docs/cli/reference).
+
+### Cursor Agent
+
+The bridge starts `cursor-agent -p --output-format stream-json` and adds
+`--resume SESSION_ID` for follow-ups. Cursor documents history and direct
+resume commands:
+
+```sh
+cursor-agent ls
+cursor-agent --resume SESSION_ID
+```
+
+The invocation follows the [Cursor CLI documentation](https://docs.cursor.com/en/cli/overview).
+Local persistence and history visibility have not been verified: `cursor-agent`
+was unavailable in the shell used for the check. Ensure it is on the bridge's
+`PATH`. This describes CLI history; visibility in the Cursor editor was not
+verified.
+
+### Hermes
+
+New conversations explicitly use `--source cli` so Hermes does not classify
+them as `oneshot` automation hidden from human history pickers. Restart the
+bridge after updating it. Browse conversations with `/resume` in Hermes, or
+open a known session using `/resume SESSION_ID` or `hermes --resume SESSION_ID`.
+The recent list shows only 10 sessions at a time.
+
+Older one-shot sessions keep their original source when resumed and can remain
+hidden. The plugin does not import or relabel existing provider history.
+Source classification and titles are separate: a saved session can have no
+title. See the [Hermes quickstart](QUICKSTART.md) for setup and recovery by ID.
+
 ## Questions and permissions
 
 The selected node itself does not trigger descendant exclusion: selecting an `Agent resume` node includes its descendants unless another `Agent resume` node appears beneath it.
