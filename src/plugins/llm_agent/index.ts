@@ -162,16 +162,17 @@ registerPlugin({
     const settings = configured;
     const resume = await findResume(sourcePath, api);
     const provider = resume ? resume.provider : settings.provider;
-    const rows = await session.addBlocks(sourcePath, -1, [{
-      text: `Agent status [starting · ${provider}]`,
-      children: [{text: 'Agent response', children: ['…']}],
-    }]);
+    const rows = await session.addBlocks(sourcePath, -1, [
+      {text: `Agent status [starting · ${provider}]`},
+      {text: 'Agent response', children: ['…']},
+    ]);
     const statusPath = rows[0];
-    const responsePath = (await session.document.getChildren(statusPath))[0];
+    const responsePath = rows[1];
     const responseRows: Array<Path> = [(await session.document.getChildren(responsePath))[0]];
-    const outputLock = session.acquireEditLock(
-      await session.document.getSubtreeRows(statusPath.row)
-    );
+    const outputLock = session.acquireEditLock([
+      ...(await session.document.getSubtreeRows(statusPath.row)),
+      ...(await session.document.getSubtreeRows(responsePath.row)),
+    ]);
     let outputLocked = true;
     const releaseOutputLock = () => {
       if (outputLocked) {
@@ -235,14 +236,14 @@ registerPlugin({
           await setText(api, statusPath, `Agent status [${message.code === 0 ? 'done' : 'error'} · ${provider}]`);
           if (completion.canResume && sessionId) {
             await session.bypassEditLocks(async () => {
-              await session.addBlocks(statusPath, -1, [{
+              await session.addBlocks(sourcePath, -1, [{
                 text: `Agent resume [${provider}:${sessionId}]`,
                 children: [completion.followUp],
               }]);
             });
           } else {
             await session.bypassEditLocks(async () => {
-              await session.addBlocks(statusPath, -1, [completion.followUp]);
+              await session.addBlocks(sourcePath, -1, [completion.followUp]);
             });
           }
         } finally {

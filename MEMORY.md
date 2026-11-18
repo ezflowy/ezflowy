@@ -25,6 +25,7 @@
 - Ctrl/Cmd-Shift-A sends the current node to Codex, Cursor Agent, or Hermes through the local bridge in `server/agent_server.ts`.
 - The bridge uses each CLI's structured streaming mode, binds to `127.0.0.1:7331` by default, and requires the token printed at startup or supplied through `EZFLOWY_AGENT_TOKEN`.
 - Agent status and response lines are updated incrementally in rows owned by the run, so edits elsewhere in the outline remain independent.
+- The run's output nodes are flat siblings under the prompt node (as of 2026-11-18): `Agent status` and `Agent response` are at the same level (not nested), and the final `Agent resume` or follow-up node is appended as a sibling after them, so streamed replies no longer render with double indentation. The edit lock covers both the status and response subtrees.
 - Successful turns with a session ID leave a visible `Agent resume [provider:session-id]` node with an editable `Next prompt:` child; triggering that child resumes the same provider session.
 - Failed turns never create a resume node, even if the provider emitted a session ID before exiting. The plugin displays stderr as `Agent error:` in the response area and in a follow-up child; if the agent streamed partial output first, that output is preserved ahead of the error.
 - Completion behavior is centralized in the exported `agentCompletion` helper and covered in `test/tests/llm_agent.ts`, including empty failures, partial-output failures, and successful resumability.
@@ -50,7 +51,7 @@
 
 - LLM Chat no longer blocks the global key queue while awaiting `fetch`; the submitted node and its descendants are locked while the rest of the outline remains editable.
 - LLM Chat replaces the submitted node's children when the response arrives, so its lock protects that entire subtree and is bypassed only for the plugin-owned replacement.
-- LLM Agent locks only the generated status and response subtree while streaming. Newly generated response rows are added to the active lock, while the source prompt and unrelated outline rows remain editable.
+- LLM Agent locks the generated status and response sibling subtrees while streaming. Newly generated response rows are added to the active lock, while the source prompt and unrelated outline rows remain editable.
 - LLM Agent releases its output lock on completion, bridge failure, or socket closure. The final resume and `Next prompt:` rows are editable after completion.
 - Edit locks are enforced at the mutation layer, including structural edits, undo, and redo. Mutations report their affected rows so operations that would indirectly alter a locked descendant are also rejected.
 - Locked rows receive a shared visual cue: shaded background, reduced opacity, lock glyph, `not-allowed` cursor, tooltip, and `aria-readonly` state.
