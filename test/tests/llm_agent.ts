@@ -1,9 +1,11 @@
+import { strict as assert } from 'assert';
+import { agentResponseLines, filterAgentText, AgentTextState } from '../../src/shared/agent_output';
 import { DocumentStore } from '../../src/assets/ts/datastore';
 import Document from '../../src/assets/ts/document';
 import Path from '../../src/assets/ts/path';
 import { InMemory } from '../../src/shared/data_backend';
 import { agentCompletion, buildAgentPrompt, llmAgentMappings } from '../../src/plugins/llm_agent';
-import { stripLeadingBlankLines } from '../../server/agent_server';
+import { commandFor, stripLeadingBlankLines } from '../../server/agent_server';
 
 describe('LLM Agent plugin', function() {
   it('includes descendants when only the selected node is an Agent resume node', async function() {
@@ -90,6 +92,54 @@ describe('LLM Agent plugin', function() {
     const fresh = {started: false};
     if (stripLeadingBlankLines('No leading blanks', fresh) !== 'No leading blanks') {
       throw new Error('Clean first text was modified');
+    }
+  });
+
+  it('keeps leading stripping active through metadata and split blank chunks', function() {
+    const state = {started: false};
+    for (const text of ['', '\n', ' \t', '\r\n', '']) {
+      assert.equal(stripLeadingBlankLines(text, state), '');
+      assert.equal(state.started, false);
+    }
+    assert.equal(stripLeadingBlankLines('Hello', state), 'Hello');
+    assert.equal(state.started, true);
+  });
+
+  it('filters blank lines independently of stream chunk boundaries', function() {
+    const input = '\r\n \t\r\n  Hello\r\n\r\n \t\n    World\n\n';
+    const expected = '  Hello\n    World';
+    for (let split = 0; split <= input.length; split++) {
+      const state: AgentTextState = {started: false, lineStarted: false, pending: ''};
+      const chunks = ['', input.slice(0, split), '', input.slice(split), ''];
+      assert.equal(chunks.map(chunk => filterAgentText(chunk, state)).join(''), expected);
+    }
+    const state: AgentTextState = {started: false, lineStarted: false, pending: ''};
+    assert.equal(input.split('').map(char => filterAgentText(char, state)).join(''), expected);
+    assert.equal(filterAgentText('Fresh run', {started: false, lineStarted: false, pending: ''}), 'Fresh run');
+  });
+
+  it('renders only nonblank outline rows while preserving content indentation', function() {
+    assert.deepEqual(agentResponseLines('\n \t\r\nHello\n\n  World\n'), ['Hello', '  World']);
+    assert.deepEqual(agentResponseLines('\n \t\r\n'), []);
+    assert.deepEqual(agentResponseLines('Partial response\n\nAgent error: failed'),
+      ['Partial response', 'Agent error: failed']);
+  });
+
+  it('runs Codex with workspace-write so git can write .git/index.lock', function() {
+    const fresh = commandFor({
+      type: 'run', requestId: 'r1', provider: 'codex', prompt: 'do it', cwd: '/tmp/repo', token: 't',
+    });
+    const freshArgs = fresh.args.join(' ');
+    if (!freshArgs.includes('--sandbox workspace-write')) {
+      throw new Error(`Fresh Codex run must use workspace-write: ${freshArgs}`);
+    }
+    const resume = commandFor({
+      type: 'run', requestId: 'r2', provider: 'codex', prompt: 'again', cwd: '/tmp/repo',
+      resumeId: 'session-123', token: 't',
+    });
+    const resumeArgs = resume.args.join(' ');
+    if (!resumeArgs.includes('--sandbox workspace-write')) {
+      throw new Error(`Codex resume must use workspace-write: ${resumeArgs}`);
     }
   });
 });

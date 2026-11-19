@@ -26,8 +26,15 @@ account and provider configuration as the bridge when looking for a session.
 
 ### Codex
 
-The bridge starts `codex exec --json` without `--ephemeral`, so sessions are
-persisted by default. Follow-ups use `codex exec resume --json SESSION_ID`.
+The bridge starts `codex exec --sandbox workspace-write --json` without
+`--ephemeral`, so sessions are persisted by default. Follow-ups use
+`codex exec --sandbox workspace-write resume --json SESSION_ID`.
+
+The sandbox flag is required: `codex exec` defaults to a read-only sandbox,
+which cannot create `.git/index.lock`, so git commits and pushes fail.
+`workspace-write` grants write access to the working directory and its
+`.git`, while still blocking writes elsewhere on the machine. It is not the
+same as `danger-full-access`, which also allows writes outside the workspace.
 The interactive resume picker normally excludes these non-interactive runs.
 To include them across working directories:
 

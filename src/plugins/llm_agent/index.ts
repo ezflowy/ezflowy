@@ -1,3 +1,4 @@
+import { agentResponseLines } from '../../shared/agent_output';
 import Path from '../../assets/ts/path';
 import { PluginApi, registerPlugin } from '../../assets/ts/plugins';
 import './index.sass';
@@ -19,7 +20,7 @@ export type AgentCompletion = {
 export function agentCompletion(response: string, code: number, error: string): AgentCompletion {
   if (code === 0) {
     return {
-      response: response || '(no response)',
+      response: response.trim() ? response : '(no response)',
       canResume: true,
       followUp: 'Next prompt: ',
     };
@@ -192,7 +193,14 @@ registerPlugin({
       pendingRender = null; lastRender = Date.now();
       const snapshot = response;
       renderQueue = renderQueue.then(async () => {
-        const lines = snapshot.replace(/\r/g, '').split('\n');
+        const content = agentResponseLines(snapshot);
+        const lines = content.length ? content : ['…'];
+        if (responseRows.length > lines.length) {
+          await session.bypassEditLocks(async () => {
+            await session.delBlocks(responsePath.row, lines.length, responseRows.length - lines.length, {noSave: true});
+          });
+          responseRows.splice(lines.length);
+        }
         while (responseRows.length < lines.length) {
           const added = await session.bypassEditLocks(
             async () => await session.addBlocks(responsePath, -1, [''])
@@ -201,7 +209,7 @@ registerPlugin({
           session.extendEditLock(outputLock, added.map(path => path.row));
         }
         for (let i = 0; i < lines.length; i++) {
-          await setText(api, responseRows[i], lines[i] || (i === lines.length - 1 ? '…' : ' '));
+          await setText(api, responseRows[i], lines[i]);
         }
       });
     };

@@ -1,3 +1,4 @@
+import { filterAgentText, AgentTextState } from '../src/shared/agent_output';
 import * as http from 'http';
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import { randomBytes, timingSafeEqual } from 'crypto';
@@ -23,12 +24,15 @@ const server = http.createServer((_request, response) => {
 });
 const wss = new WebSocket.Server({server});
 
-function commandFor(message: RunMessage): {command: string, args: Array<string>} {
+export function commandFor(message: RunMessage): {command: string, args: Array<string>} {
   if (message.provider === 'codex') {
     if (message.resumeId) {
-      return {command: 'codex', args: ['exec', 'resume', '--json', message.resumeId, '-']};
+      return {command: 'codex', args: ['exec', '--sandbox', 'workspace-write', 'resume', '--json', message.resumeId, '-']};
     }
-    return {command: 'codex', args: ['exec', '--json', '-C', message.cwd, '-']};
+    // Codex defaults exec runs to a read-only sandbox, which cannot write
+    // .git/index.lock, so git commits and pushes would fail. Grant
+    // workspace-wide write access instead.
+    return {command: 'codex', args: ['exec', '--sandbox', 'workspace-write', '--json', '-C', message.cwd, '-']};
   }
   if (message.provider === 'cursor') {
     const args = ['-p', '--output-format', 'stream-json'];
@@ -88,8 +92,9 @@ function sessionFromEvent(event: any): string {
 // Drop the leading blank lines once; interior blank lines stay untouched.
 export function stripLeadingBlankLines(text: string, state: {started: boolean}): string {
   if (state.started) { return text; }
-  state.started = true;
-  return text.replace(/^[ \t\r\n]+/, '');
+  const stripped = text.replace(/^[ \t\r\n]+/, '');
+  state.started = stripped.length > 0;
+  return stripped;
 }
 
 wss.on('connection', (socket) => {
@@ -123,7 +128,7 @@ wss.on('connection', (socket) => {
       return;
     }
     const invocation = commandFor(message);
-    const textState = {started: false};
+    const textState: AgentTextState = {started: false, lineStarted: false, pending: ''};
     send({type: 'status', requestId: message.requestId, status: 'starting'});
     child = spawn(invocation.command, invocation.args, {
       cwd: message.cwd,
@@ -147,13 +152,14 @@ wss.on('connection', (socket) => {
           const event = JSON.parse(line);
           const sessionId = sessionFromEvent(event);
           if (sessionId) { send({type: 'session', requestId: message.requestId, sessionId}); }
-          const text = stripLeadingBlankLines(textFromEvent(message.provider, event), textState);
+          const text = filterAgentText(textFromEvent(message.provider, event), textState);
           if (text) { send({type: 'text', requestId: message.requestId, text}); }
           const progress = progressFromEvent(event);
           if (progress) { send({type: 'status', requestId: message.requestId, status: progress}); }
           send({type: 'raw', requestId: message.requestId, event});
         } catch (_error) {
-          send({type: 'text', requestId: message.requestId, text: stripLeadingBlankLines(`${line}\n`, textState)});
+          const text = filterAgentText(`${line}\n`, textState);
+          if (text) { send({type: 'text', requestId: message.requestId, text}); }
         }
       });
     });
@@ -164,7 +170,7 @@ wss.on('connection', (socket) => {
     child.on('close', (code) => {
       const match = stderr.match(/session_id:\s*([^\s]+)/i);
       if (match) { send({type: 'session', requestId: message.requestId, sessionId: match[1]}); }
-      const rest = stripLeadingBlankLines(stdout, textState);
+      const rest = filterAgentText(stdout, textState);
       if (rest.trim()) { send({type: 'text', requestId: message.requestId, text: rest}); }
       send({
         type: 'done', requestId: message.requestId, code: code == null ? 1 : code,
