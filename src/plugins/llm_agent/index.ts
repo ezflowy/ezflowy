@@ -17,7 +17,7 @@ export type AgentCompletion = {
   followUp: string,
 };
 
-export function agentCompletion(response: string, code: number, error: string): AgentCompletion {
+export function agentCompletion(response: string, code: number, error: string, sessionId: string = ''): AgentCompletion {
   if (code === 0) {
     return {
       response: response.trim() ? response : '(no response)',
@@ -25,11 +25,12 @@ export function agentCompletion(response: string, code: number, error: string): 
       followUp: 'Next prompt: ',
     };
   }
-  const errorText = `Agent error: ${error.trim() || `exit ${code}`}`;
+  const detail = error.replace(/^\s*session_id:\s*\S+\s*$/gmi, '').trim();
+  const errorText = `Agent error: ${detail || `exit ${code}`}`;
   return {
     response: response ? `${response.replace(/\s+$/, '')}\n\n${errorText}` : errorText,
-    canResume: false,
-    followUp: errorText,
+    canResume: Boolean(sessionId),
+    followUp: 'Next prompt: ',
   };
 }
 
@@ -207,7 +208,7 @@ registerPlugin({
             async () => await session.addBlocks(responsePath, -1, [''])
           );
           responseRows.push(added[0]);
-          session.extendEditLock(outputLock, added.map(path => path.row));
+          if (outputLocked) { session.extendEditLock(outputLock, added.map(path => path.row)); }
         }
         for (let i = 0; i < lines.length; i++) {
           await setText(api, responseRows[i], lines[i]);
@@ -225,51 +226,48 @@ registerPlugin({
       type: 'run', requestId, provider, prompt: source, cwd: settings.cwd, token: settings.bridgeToken,
       resumeId: resume ? resume.sessionId : undefined,
     }));
+    let finished = false;
+    const finish = async (code: number, error: string) => {
+      if (finished) { return; }
+      finished = true;
+      try {
+        if (pendingRender != null) { window.clearTimeout(pendingRender); }
+        const completion = agentCompletion(response, code, error, sessionId);
+        response = completion.response;
+        render();
+        await renderQueue;
+        await setText(api, statusPath, `Agent status [${code === 0 ? 'done' : 'error'} · ${provider}]`);
+        if (completion.canResume && sessionId) {
+          await session.bypassEditLocks(async () => {
+            await session.addBlocks(code === 0 ? sourcePath : statusPath, -1, [{
+              text: `Agent resume [${provider}:${sessionId}]`,
+              children: [completion.followUp],
+            }]);
+          });
+        }
+      } finally {
+        releaseOutputLock();
+        socket.close();
+      }
+    };
     socket.onmessage = async (event) => {
       const message = JSON.parse(event.data);
-      if (message.requestId && message.requestId !== requestId) { return; }
+      if (finished || (message.requestId && message.requestId !== requestId)) { return; }
       if (message.type === 'text') { response += message.text; scheduleRender(); }
       if (message.type === 'session') { sessionId = message.sessionId; }
       if (message.type === 'status') { await setText(api, statusPath, `Agent status [running · ${provider}] ${message.status}`); }
-      if (message.type === 'error') {
-        await setText(api, statusPath, `Agent status [error · ${provider}]`);
-        await setText(api, responseRows[0], `Agent error: ${message.message}`);
-      }
-      if (message.type === 'done') {
-        try {
-          if (pendingRender != null) { window.clearTimeout(pendingRender); }
-          const completion = agentCompletion(response, message.code, message.error || '');
-          response = completion.response;
-          render();
-          await renderQueue;
-          await setText(api, statusPath, `Agent status [${message.code === 0 ? 'done' : 'error'} · ${provider}]`);
-          if (completion.canResume && sessionId) {
-            await session.bypassEditLocks(async () => {
-              await session.addBlocks(sourcePath, -1, [{
-                text: `Agent resume [${provider}:${sessionId}]`,
-                children: [completion.followUp],
-              }]);
-            });
-          } else {
-            await session.bypassEditLocks(async () => {
-              await session.addBlocks(sourcePath, -1, [completion.followUp]);
-            });
-          }
-        } finally {
-          releaseOutputLock();
-          socket.close();
-        }
-      }
+      if (message.type === 'error') { await finish(1, message.message); }
+      if (message.type === 'done') { await finish(message.code, message.error || ''); }
     };
     socket.onerror = async () => {
-      try {
-        await setText(api, statusPath, `Agent status [bridge unavailable · ${provider}]`);
-        await setText(api, responseRows[0], `Agent error: cannot connect to ${settings.bridgeUrl}. Run npm run agent-server.`);
-      } finally {
-        releaseOutputLock();
-      }
+      await finish(1, `cannot connect to ${settings.bridgeUrl}. Run npm run agent-server.`);
     };
-    socket.onclose = releaseOutputLock;
+    socket.onclose = () => {
+      if (!finished) {
+        void finish(1, 'Agent bridge connection closed before completion');
+      }
+      releaseOutputLock();
+    };
   });
   api.registerDefaultMappings('NORMAL', llmAgentMappings);
   api.registerDefaultMappings('INSERT', llmAgentMappings);

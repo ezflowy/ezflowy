@@ -58,8 +58,22 @@ describe('LLM Agent plugin', function() {
     if (completion.canResume) {
       throw new Error('Failed agent runs must not offer a resume');
     }
-    if (completion.followUp !== 'Agent error: Hermes failed') {
+    if (completion.followUp !== 'Next prompt: ') {
       throw new Error(`Unexpected failure follow-up: ${completion.followUp}`);
+    }
+  });
+
+  it('keeps detached errors resumable without redundant session metadata', function() {
+    for (const detail of [
+      'Input required; detached without cancelling. Resume this session interactively.',
+      'Input required; detached without cancelling.\n  Resume this session interactively.',
+      '',
+    ]) {
+      const error = `Session: local-123\n${detail}\n  session_id: local-123`;
+      const completion = agentCompletion('', 1, error, 'local-123');
+      assert.equal(completion.response, `Agent error: Session: local-123${detail ? '\n' + detail : ''}`);
+      assert.equal(completion.canResume, true);
+      assert.equal(completion.followUp, 'Next prompt: ');
     }
   });
 

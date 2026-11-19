@@ -123,3 +123,12 @@
 - Removed the redundant `/* globals describe, it */` (and `afterEach` in `test/testcase.ts`) headers: ESLint's `react-app/jest` preset already provides the mocha globals, so the JSDoc `globals` comment made ESLint report `@typescript-eslint/no-redeclare` for every test file. 66 ESLint warnings across 33 files dropped to 0.
 - Also fixed the remaining warnings: unnecessary `\\.` / `\\'` escapes (`src/plugins/llm_chat/index.ts`, `src/plugins/examples/index.ts`) and the mixed `&&`/`||` in the LLM chat reply extraction, parenthesized to `(message && message.content) || ''`.
 - Verified: `npm run verify` (tslint + tsc + 269 tests) passed, ESLint is clean, `npm run build` completed with only the pre-existing Firebase source-map warnings, and `git diff --check` is clean.
+
+## Agent error output and cleanup (2026-11-19)
+
+- Failed LLM Agent runs keep the error and any partial output under `Agent response`, remove standalone `session_id:` metadata from the error, and no longer append a duplicate error under the source prompt.
+- When a failed run has a session ID, its `Agent resume [provider:session-id]` row and editable `Next prompt:` child are added under `Agent status [error · provider]`. Successful runs retain their existing resume placement; failures without a session ID do not offer resume.
+- Completion, bridge error messages, connection errors and premature socket closure use one guarded finalizer. It cancels pending render timers, finishes rendering, and releases output edit locks and closes the socket in `finally`; later terminal messages cannot duplicate completion output. Rendered rows extend the lock only while it is active.
+- Regression coverage in `test/tests/llm_agent.ts` includes session-only errors and both single-line and multiline Hermes input-required/detached messages, preserving the error text while removing redundant session metadata and allowing resume with a known session ID.
+- Validation under Node 22.22.2: `npm run verify` passed (TSLint, TypeScript, 279 Mocha tests); targeted ESLint and `git diff --check` passed. Live Hermes and browser behavior were not independently tested.
+
