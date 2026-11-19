@@ -31,7 +31,7 @@ This is a productivity tool which draws some inspiration from workflowy and vim.
   - loads data lazily (good for huge documents)
   - global and local subtree search (not like vim's; see [search documentation](docs/search.md))
   - cloning (bullets duplicated in multiple locations in a document)
-  - customizable visual themes
+  - customizable visual themes; Settings → Visual theme → Appearance offers Light, Dark, or Auto (follows the operating system)
 
 ## LIMITATIONS
 
@@ -59,6 +59,12 @@ Contributions are very welcome!
 See [dev_setup.md](docs/dev_setup.md) to see how to get started with a development setup.
 This repo includes a local `.npmrc` so `npm install` uses legacy peer dependency
 resolution automatically.
+
+The install hook repairs missing content for Firebase 8 Auth's synthetic source-map
+entries. These virtual sources have no files on disk; the hook embeds empty content
+for them while preserving real source content and mappings. Application source maps
+and build warnings remain enabled. To refresh the browser compatibility data in the
+lockfile, run `npx update-browserslist-db@latest`.
 
 #### LICENSE
 

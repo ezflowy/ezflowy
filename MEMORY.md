@@ -114,7 +114,7 @@
 
 ## Search responsiveness (2026-11-15)
 
-- Global (`/`) and local (`Ctrl+/`) search retain the existing case-insensitive, whitespace-separated substring semantics. The default result cap is 50 rows.
+- Global (`/`) and local (`Ctrl:/`) search retain the existing case-insensitive, whitespace-separated substring semantics. The default result cap is 50 rows.
 - `Menu` debounces queries by 120 ms, assigns a generation to each query, ignores stale full and partial results, exposes a `searching` state, and emits `updated` when progressive or final results arrive. It also tracks which query generation produced the visible results: `Ctrl+J`, `Ctrl+K`, and Enter act immediately once the current scan has published progressive results, but still flush a pending debounced query when no current results exist. This allows jumping to matches before a long scan finishes without selecting stale results. Disposing a menu cancels pending work.
 - `Document.search()` accepts candidate paths, cancellation and progress callbacks. It yields to the browser event loop every 250 visited rows. Extended queries reuse previous candidates only when the earlier result set was exhaustive; never refine from a capped result set because matching rows beyond the cap would be lost.
 - The search UI publishes matches progressively and displays `Searching...` while a scan is active. Each loaded `CachedRowInfo` stores normalized lowercase text for case-insensitive search. Structural, collapsed-state and plugin-data cache updates preserve that string; `setLine()` rebuilds it when row text changes. Case-sensitive search continues to read the original line.
@@ -149,3 +149,16 @@
 - Bridge URL and token continue to use the latest settings. Fresh runs use the current global defaults; canceling the dialog aborts the run.
 - Regression coverage in `test/tests/llm_agent.ts` checks fresh defaults, session-specific provider and directory, an explicitly empty saved directory, current bridge credentials, and legacy-session fallback.
 - Validation under Node 22.22.2: `npm run verify` passed (TSLint, TypeScript, 281 Mocha tests); targeted ESLint and `git diff --check` passed. Live browser behavior was not independently tested.
+
+## Build warning cleanup (2026-11-19)
+
+- Firebase 8.2.1 Auth ships source maps with six Closure compiler synthetic source entries whose `sourcesContent` values are null. They are virtual sources, not missing project files. The `postinstall` hook runs `scripts/fix-firebase-source-maps.cjs` to embed empty content only for those entries in Auth's `.js.map` files. Real source content, mappings, application source maps, and warning reporting remain enabled. The repair is idempotent and reapplies on normal npm installs.
+- Refreshed `caniuse-lite` and `baseline-browser-mapping` in `package-lock.json` with `npx update-browserslist-db@latest`, removing the stale Browserslist data notice. Repeat that command when the data becomes outdated again.
+- Verified on Node 22.22.2: `CI=true npm run build` compiled successfully without warnings; `npm run verify` passed TSLint, TypeScript, and all 264 tests. ESLint on the new script, install-hook idempotence, and `git diff --check` also passed.
+
+## System appearance and dark mode (2026-11-19)
+
+- Settings → Visual theme → Appearance provides Light, Dark, Auto (system), and Custom colors. New clients default to Auto, which follows `prefers-color-scheme: dark` and repaints immediately when the operating system appearance changes. The selected `themeMode` persists in the client store, independently of document storage.
+- `datastore.ts` resolves Light and Dark using the existing Default and Dark palettes. Clients with previously saved theme colors migrate to Custom colors to preserve their appearance. Editing a color snapshots the visible palette before switching to Custom colors; switching between modes retains the custom palette. Existing presets, theme import/export, and the color editor remain available.
+- `AppComponent` subscribes to system appearance changes and removes its listener on unmount. It also updates page colors, native control color scheme, and CSS variables for form controls. `BlockComponent` compares a palette signature so its render optimization does not leave existing rows in the previous theme.
+- Regression coverage in `test/tests/themes.ts` checks system preference changes, explicit overrides, persistence, legacy palette preservation, and custom edits across mode switches. On Node 22.22.2, `npm run verify` passed TSLint, TypeScript, and all 268 tests; ESLint on changed TypeScript files and `git diff --check` passed; `CI=true npm run build` compiled successfully. Visual browser verification remains unconfirmed because the browser access host was unavailable.

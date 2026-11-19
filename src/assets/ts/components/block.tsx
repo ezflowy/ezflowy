@@ -9,7 +9,7 @@ import Path from '../path';
 import { CursorsInfoTree } from '../cursor';
 import { Col } from '../types';
 import { PartialUnfolder, Token } from '../utils/token_unfolder';
-import { getStyles } from '../themes';
+import { getStyles, themeSignature } from '../themes';
 
 type RowProps = {
   session: Session;
@@ -149,8 +149,13 @@ export default class BlockComponent extends React.Component<BlockProps, {}> {
   //   super(props);
   // }
 
+  private renderedTheme: string = '';
+
   public shouldComponentUpdate(nextProps: BlockProps) {
     if (nextProps.editLocksVersion !== this.props.editLocksVersion) {
+      return true;
+    }
+    if (this.renderedTheme !== themeSignature(nextProps.session.clientStore)) {
       return true;
     }
     if (this.props.cursorsTree.hasSelection) {
@@ -188,6 +193,7 @@ export default class BlockComponent extends React.Component<BlockProps, {}> {
 
 
   public render() {
+    this.renderedTheme = themeSignature(this.props.session.clientStore);
     const session = this.props.session;
     const parent = this.props.path;
     const cached = this.props.cached;

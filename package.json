@@ -33,6 +33,7 @@
         "ws": "^6.1.2"
     },
     "scripts": {
+        "postinstall": "node scripts/fix-firebase-source-maps.cjs",
         "lint": "tslint --exclude 'node_modules/**/*' '**/*.ts' '**/*.tsx'",
         "startprod": "ts-node --compilerOptions '{\"module\":\"commonjs\"}' server/prod.ts",
         "agent-server": "ts-node --compilerOptions '{\"module\":\"commonjs\"}' server/agent_server.ts",
