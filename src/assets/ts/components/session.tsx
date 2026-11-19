@@ -30,6 +30,8 @@ type Profiler = (profilerMessage: string) => () => void;
 export default class SessionComponent extends React.Component<Props, State> {
   private update: () => void; // this is promise debounced
 
+  private editLocksVersion: number = 0;
+
   private profileRender: boolean; // for debugging
   private getProfiler: (profileRender: boolean) => Profiler;
   private onCharClick: (path: Path, column: number, e: Event) => void;
@@ -83,6 +85,7 @@ export default class SessionComponent extends React.Component<Props, State> {
     };
 
     this.fetchAndRerender = this.fetchAndRerender.bind(this);
+    this.onEditLocksChanged = this.onEditLocksChanged.bind(this);
 
     // make true to output time taken to get render contents
     this.profileRender = true;
@@ -148,6 +151,11 @@ export default class SessionComponent extends React.Component<Props, State> {
     });
   }
 
+  private onEditLocksChanged() {
+    this.editLocksVersion += 1;
+    this.update();
+  }
+
   private async fetchAndRerender() {
     const session = this.props.session;
     const finishProfiling = this.getProfiler(this.profileRender)('forceLoadTree took');
@@ -163,13 +171,13 @@ export default class SessionComponent extends React.Component<Props, State> {
   }
 
   public componentDidMount() {
-    this.props.session.on('editLocksChanged', this.update);
+    this.props.session.on('editLocksChanged', this.onEditLocksChanged);
     this.props.session.document.on('lineChanged', this.update);
     this.update();
   }
 
   public componentWillUnmount() {
-    this.props.session.off('editLocksChanged', this.update);
+    this.props.session.off('editLocksChanged', this.onEditLocksChanged);
     this.props.session.document.off('lineChanged', this.update);
   }
 
@@ -239,6 +247,7 @@ export default class SessionComponent extends React.Component<Props, State> {
         }
         <BlockComponent
           session={session}
+          editLocksVersion={this.editLocksVersion}
           cursorsTree={cursorsTree.getPath(viewRoot)}
           cached={session.document.cache.get(viewRoot.row)}
           path={viewRoot}

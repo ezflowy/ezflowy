@@ -76,6 +76,13 @@
 - Verification on 2026-11-12: `npm run verify` passed with 260 tests, and the production build succeeded with the existing Firebase source-map and LLM Chat ESLint warnings.
 - `ezflowy.iml` (IntelliJ module file) is now tracked; committed as `dd23bed Add IntelliJ IDEA module file` on 2026-11-17.
 
+## Agent completion lock repaint (2026-11-19)
+
+- Agent completion released edit locks and emitted `editLocksChanged`, but `BlockComponent.shouldComponentUpdate` skipped unchanged cached blocks, leaving their lock cues visible until another update.
+- `SessionComponent` now increments `editLocksVersion` on lock notifications and passes it through every nested `BlockComponent`. A revision change forces blocks to repaint even when their cached rows and cursor state are unchanged.
+- `test/tests/line_repaint.ts` covers invalidation on lock acquisition and release, propagation to nested blocks, and retained render skipping when the revision is unchanged.
+- Validation under Node 22.22.2: `npm run verify` passed (TSLint, TypeScript, 278 Mocha tests); targeted ESLint and `git diff --check` passed. Live browser behavior was not independently verified.
+
 ## Agent status and streaming repaint (2026-11-17)
 
 - Replacing existing Agent status or response text updated the document cache without notifying the outline to render. New response rows triggered lock-change notifications, so repaint appeared to depend on adding lines or clicking in the outline.

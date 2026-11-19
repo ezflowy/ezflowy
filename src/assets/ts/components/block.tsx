@@ -132,6 +132,7 @@ class RowComponent extends React.Component<RowProps, {}> {
 
 type BlockProps = {
   session: Session;
+  editLocksVersion: number;
   path: Path;
 
   cached: CachedRowInfo | null;
@@ -149,6 +150,9 @@ export default class BlockComponent extends React.Component<BlockProps, {}> {
   // }
 
   public shouldComponentUpdate(nextProps: BlockProps) {
+    if (nextProps.editLocksVersion !== this.props.editLocksVersion) {
+      return true;
+    }
     if (this.props.cursorsTree.hasSelection) {
       return true;
     }
@@ -279,6 +283,7 @@ export default class BlockComponent extends React.Component<BlockProps, {}> {
             {cloneIcon}
             {bullet}
             <BlockComponent key='block'
+             editLocksVersion={this.props.editLocksVersion}
              cached={cachedChild}
              topLevel={false}
              cursorsTree={cursorsTree.getChild(path.row)}
