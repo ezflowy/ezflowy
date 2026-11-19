@@ -131,4 +131,3 @@
 - Completion, bridge error messages, connection errors and premature socket closure use one guarded finalizer. It cancels pending render timers, finishes rendering, and releases output edit locks and closes the socket in `finally`; later terminal messages cannot duplicate completion output. Rendered rows extend the lock only while it is active.
 - Regression coverage in `test/tests/llm_agent.ts` includes session-only errors and both single-line and multiline Hermes input-required/detached messages, preserving the error text while removing redundant session metadata and allowing resume with a known session ID.
 - Validation under Node 22.22.2: `npm run verify` passed (TSLint, TypeScript, 279 Mocha tests); targeted ESLint and `git diff --check` passed. Live Hermes and browser behavior were not independently tested.
-
