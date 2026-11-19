@@ -125,21 +125,21 @@ describe('LLM Agent plugin', function() {
       ['Partial response', 'Agent error: failed']);
   });
 
-  it('runs Codex with workspace-write so git can write .git/index.lock', function() {
+  it('runs fresh and resumed Codex sessions without sandbox or approval prompts', function() {
     const fresh = commandFor({
       type: 'run', requestId: 'r1', provider: 'codex', prompt: 'do it', cwd: '/tmp/repo', token: 't',
     });
-    const freshArgs = fresh.args.join(' ');
-    if (!freshArgs.includes('--sandbox workspace-write')) {
-      throw new Error(`Fresh Codex run must use workspace-write: ${freshArgs}`);
-    }
+    assert.equal(fresh.command, 'codex');
+    assert.deepEqual(fresh.args, [
+      'exec', '--dangerously-bypass-approvals-and-sandbox', '--json', '-C', '/tmp/repo', '-',
+    ]);
     const resume = commandFor({
       type: 'run', requestId: 'r2', provider: 'codex', prompt: 'again', cwd: '/tmp/repo',
       resumeId: 'session-123', token: 't',
     });
-    const resumeArgs = resume.args.join(' ');
-    if (!resumeArgs.includes('--sandbox workspace-write')) {
-      throw new Error(`Codex resume must use workspace-write: ${resumeArgs}`);
-    }
+    assert.equal(resume.command, 'codex');
+    assert.deepEqual(resume.args, [
+      'exec', '--dangerously-bypass-approvals-and-sandbox', 'resume', '--json', 'session-123', '-',
+    ]);
   });
 });

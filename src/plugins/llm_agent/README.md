@@ -26,15 +26,17 @@ account and provider configuration as the bridge when looking for a session.
 
 ### Codex
 
-The bridge starts `codex exec --sandbox workspace-write --json` without
-`--ephemeral`, so sessions are persisted by default. Follow-ups use
-`codex exec --sandbox workspace-write resume --json SESSION_ID`.
+The bridge starts `codex exec --dangerously-bypass-approvals-and-sandbox --json`
+without `--ephemeral`, so sessions are persisted by default. Follow-ups use
+`codex exec --dangerously-bypass-approvals-and-sandbox resume --json SESSION_ID`.
 
-The sandbox flag is required: `codex exec` defaults to a read-only sandbox,
-which cannot create `.git/index.lock`, so git commits and pushes fail.
-`workspace-write` grants write access to the working directory and its
-`.git`, while still blocking writes elsewhere on the machine. It is not the
-same as `danger-full-access`, which also allows writes outside the workspace.
+Both paths disable Codex sandboxing and approval prompts. Bridge-launched Codex
+can run commands with the bridge user's filesystem and network permissions,
+including git commit and push when credentials and host permissions allow.
+`workspace-write` can still protect `.git`, so it does not guarantee that git
+can create `.git/index.lock`. Restart `npm run agent-server` after updating.
+An external sandbox or operating system restriction still applies to child processes.
+
 The interactive resume picker normally excludes these non-interactive runs.
 To include them across working directories:
 

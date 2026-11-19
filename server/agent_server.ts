@@ -27,12 +27,11 @@ const wss = new WebSocket.Server({server});
 export function commandFor(message: RunMessage): {command: string, args: Array<string>} {
   if (message.provider === 'codex') {
     if (message.resumeId) {
-      return {command: 'codex', args: ['exec', '--sandbox', 'workspace-write', 'resume', '--json', message.resumeId, '-']};
+      return {command: 'codex', args: ['exec', '--dangerously-bypass-approvals-and-sandbox', 'resume', '--json', message.resumeId, '-']};
     }
-    // Codex defaults exec runs to a read-only sandbox, which cannot write
-    // .git/index.lock, so git commits and pushes would fail. Grant
-    // workspace-wide write access instead.
-    return {command: 'codex', args: ['exec', '--sandbox', 'workspace-write', '--json', '-C', message.cwd, '-']};
+    // The bridge runs unattended with full access as requested.
+    // workspace-write can still protect .git and block commits.
+    return {command: 'codex', args: ['exec', '--dangerously-bypass-approvals-and-sandbox', '--json', '-C', message.cwd, '-']};
   }
   if (message.provider === 'cursor') {
     const args = ['-p', '--output-format', 'stream-json'];
