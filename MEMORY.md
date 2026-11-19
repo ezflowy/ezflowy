@@ -15,6 +15,8 @@
 - The editor's document-level Safari paste workaround normally focuses the hidden `#paste-hack` element after clicks; this caused dialog inputs to gain focus briefly and then lose it.
 - The paste workaround now ignores form controls, editable elements, labels, and dialogs, while the LLM dialog also stops its internal clicks from bubbling to document-level handlers.
 - Keyboard tabbing and initial dialog focus were unaffected; the fix targets mouse-click focus retention.
+- On 2026-11-19, applied the existing LLM Agent configuration paste fix to Chat: the dialog overlay stops `paste` event propagation without preventing the default action, preserving native input paste while keeping the outline's global paste handler from intercepting it.
+- Paste fix verification: `npm run verify` passed under Node 22 (TSLint, TypeScript, all 279 tests), targeted ESLint passed, and `git diff --check` was clean. Live browser paste behavior was not independently tested.
 - Verification completed on 2026-11-11: TypeScript typecheck passed, all 259 tests passed, and the production build completed with existing warnings.
 - Initial implementation was committed as `4ab9eb4 Combine LLM settings prompts into dialog` and pushed to `origin/master`.
 - `ezflowy.iml` (IntelliJ module file) is now tracked; committed as `dd23bed Add IntelliJ IDEA module file` on 2026-11-17.

@@ -367,6 +367,10 @@ function showSettingsDialog(settings: Settings): Promise<Settings | null> {
       // paste target. Keep clicks in this modal from stealing field focus.
       event.stopPropagation();
     });
+    overlay.addEventListener('paste', (event) => {
+      // Preserve native field paste without invoking the outline's paste handler.
+      event.stopPropagation();
+    });
     overlay.addEventListener('keydown', (event) => {
       event.stopPropagation();
       if (event.key === 'Escape') {
