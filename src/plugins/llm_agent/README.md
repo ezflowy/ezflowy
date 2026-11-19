@@ -16,6 +16,8 @@ To change the listen address, set `EZFLOWY_AGENT_PORT` (default `7331`) and `EZF
 
 Put a prompt in a node and press Ctrl-Shift-A (Cmd-Shift-A on macOS). The prompt includes the selected node and all descendants, including collapsed descendants, as nested list items. If any descendant is an `Agent resume` node, only the selected node’s text is sent; all descendants are excluded. Output is streamed into child nodes. The plugin stores the provider and resume ID in a visible `Agent resume [...]` node and adds an editable `Next prompt:` child. Edit that child (or add descendants beneath it) and use the same shortcut to continue the conversation.
 
+The per-run configuration dialog prefills Agent from the resume node and Working directory from the saved conversation settings. Older resume nodes without saved settings use the current working directory setting. Bridge URL and token use the latest settings.
+
 ## Provider history and resume
 
 The outline's `Agent resume [provider:SESSION_ID]` node stores the provider's

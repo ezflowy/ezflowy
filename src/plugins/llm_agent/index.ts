@@ -7,6 +7,17 @@ type Provider = 'codex' | 'cursor' | 'hermes';
 type Settings = { provider: Provider, bridgeUrl: string, bridgeToken: string, cwd: string };
 type ResumeInfo = { provider: Provider, sessionId: string };
 
+function resumeSettingsKey(resume: ResumeInfo): string {
+  return `resume:${resume.provider}:${resume.sessionId}`;
+}
+
+export async function agentRunSettings(api: PluginApi, resume: ResumeInfo | null): Promise<Settings> {
+  const settings = await getSettings(api);
+  if (!resume) { return settings; }
+  const saved = await api.getData(resumeSettingsKey(resume));
+  return {...settings, provider: resume.provider, cwd: saved ? saved.cwd : settings.cwd};
+}
+
 const pluginName = 'LLM Agent';
 const resumePattern = /^Agent resume \[(codex|cursor|hermes):(.+)]$/;
 export const llmAgentMappings = {'llm-agent-run': [['ctrl+A'], ['meta+A']]};
@@ -158,11 +169,11 @@ registerPlugin({
     if (!(await session.document.isValidPath(sourcePath))) { return; }
     const source = await buildAgentPrompt(sourcePath, session.document);
     if (!source) { session.showMessage('Enter an agent prompt in this node first', {text_class: 'error'}); return; }
-    const configured = await settingsDialog(await getSettings(api));
+    const resume = await findResume(sourcePath, api);
+    const configured = await settingsDialog(await agentRunSettings(api, resume));
     if (!configured) { return; }
     await api.setData('settings', configured);
     const settings = configured;
-    const resume = await findResume(sourcePath, api);
     const provider = resume ? resume.provider : settings.provider;
     const outputIndex = (await session.document.getChildren(sourcePath)).length;
     const rows = await session.addBlocks(sourcePath, outputIndex, [
@@ -237,6 +248,9 @@ registerPlugin({
         render();
         await renderQueue;
         await setText(api, statusPath, `Agent status [${code === 0 ? 'done' : 'error'} · ${provider}]`);
+        if (sessionId) {
+          await api.setData(resumeSettingsKey({provider, sessionId}), {cwd: settings.cwd});
+        }
         if (completion.canResume && sessionId) {
           await session.bypassEditLocks(async () => {
             await session.addBlocks(code === 0 ? sourcePath : statusPath, -1, [{

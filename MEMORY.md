@@ -141,3 +141,11 @@
 - Completion, bridge error messages, connection errors and premature socket closure use one guarded finalizer. It cancels pending render timers, finishes rendering, and releases output edit locks and closes the socket in `finally`; later terminal messages cannot duplicate completion output. Rendered rows extend the lock only while it is active.
 - Regression coverage in `test/tests/llm_agent.ts` includes session-only errors and both single-line and multiline Hermes input-required/detached messages, preserving the error text while removing redundant session metadata and allowing resume with a known session ID.
 - Validation under Node 22.22.2: `npm run verify` passed (TSLint, TypeScript, 279 Mocha tests); targeted ESLint and `git diff --check` passed. Live Hermes and browser behavior were not independently tested.
+
+## Agent resume configuration defaults (2026-11-19)
+
+- The run action resolves the nearest `Agent resume [provider:session-id]` node before opening the configuration dialog. Agent is prefilled from that session's provider.
+- Conversation working directories are saved in plugin data under `resume:provider:session-id` on completion whenever a session ID is available, including failed turns. Resuming restores that conversation's working directory instead of the latest global directory; older sessions without saved data fall back to the current directory setting.
+- Bridge URL and token continue to use the latest settings. Fresh runs use the current global defaults; canceling the dialog aborts the run.
+- Regression coverage in `test/tests/llm_agent.ts` checks fresh defaults, session-specific provider and directory, an explicitly empty saved directory, current bridge credentials, and legacy-session fallback.
+- Validation under Node 22.22.2: `npm run verify` passed (TSLint, TypeScript, 281 Mocha tests); targeted ESLint and `git diff --check` passed. Live browser behavior was not independently tested.

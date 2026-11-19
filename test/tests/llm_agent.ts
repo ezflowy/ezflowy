@@ -3,11 +3,32 @@ import { agentResponseLines, filterAgentText, AgentTextState } from '../../src/s
 import { DocumentStore } from '../../src/assets/ts/datastore';
 import Document from '../../src/assets/ts/document';
 import Path from '../../src/assets/ts/path';
+import { PluginApi } from '../../src/assets/ts/plugins';
 import { InMemory } from '../../src/shared/data_backend';
-import { agentCompletion, buildAgentPrompt, llmAgentMappings } from '../../src/plugins/llm_agent';
+import { agentCompletion, agentRunSettings, buildAgentPrompt, llmAgentMappings } from '../../src/plugins/llm_agent';
 import { commandFor, stripLeadingBlankLines } from '../../server/agent_server';
 
 describe('LLM Agent plugin', function() {
+  it('prefills resume settings from the session while retaining current bridge credentials', async function() {
+    const settings = {provider: 'codex', cwd: '/current', bridgeUrl: 'ws://localhost:7331', bridgeToken: 'current-token'};
+    const data: {[key: string]: any} = {
+      settings,
+      'resume:hermes:older-session': {cwd: '/original'},
+      'resume:cursor:older-session': {cwd: ''},
+    };
+    const api = {getData: async (key: string) => data[key]} as PluginApi;
+    assert.deepEqual(await agentRunSettings(api, null), settings);
+    assert.deepEqual(await agentRunSettings(api, {provider: 'hermes', sessionId: 'older-session'}), {
+      ...settings, provider: 'hermes', cwd: '/original',
+    });
+    assert.deepEqual(await agentRunSettings(api, {provider: 'cursor', sessionId: 'older-session'}), {
+      ...settings, provider: 'cursor', cwd: '',
+    });
+    assert.deepEqual(await agentRunSettings(api, {provider: 'hermes', sessionId: 'legacy-session'}), {
+      ...settings, provider: 'hermes',
+    });
+  });
+
   it('includes descendants when only the selected node is an Agent resume node', async function() {
     const document = new Document(new DocumentStore(new InMemory()));
     await document.load([{text: 'Agent resume [hermes:saved-session]', children: [
