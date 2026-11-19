@@ -39,6 +39,16 @@
 - Verification on 2026-11-11: TypeScript typecheck passed, all 259 tests passed, and the production build completed with the repository's existing warnings. Live socket binding was blocked by the execution sandbox and was not browser-tested.
 - Failure-display fix verification on 2026-11-15: `npm run verify` passed (TSLint, TypeScript, and all 267 tests), targeted ESLint passed, and `git diff --check` was clean.
 
+## Codex workspace-write sandbox and line-based output filtering (2026-11-19)
+
+- The bridge now starts Codex with `--sandbox workspace-write` for both fresh runs and `exec resume`. `codex exec` defaults to a read-only sandbox, which cannot create `.git/index.lock`, so git commits and pushes inside agent runs always failed; `workspace-write` grants writes to the working directory and its `.git`. The flag is not `danger-full-access` (which would also allow writes outside the workspace). Restart `npm run agent-server` after updating.
+- The invocation is covered by an exported `commandFor` in `server/agent_server.ts` with a regression test asserting `--sandbox workspace-write` on both the fresh and resume paths.
+- Blank-line filtering moved from `stripLeadingBlankLines` to the shared module `src/shared/agent_output.ts`, which the bridge and the plugin both import. `filterAgentText(text, state)` strips leading whitespace and blank lines chunk-boundary-independently (separators and indentation are held in `state.pending` until a nonblank line arrives, even across chunk splits) while preserving interior blank lines and content indentation. `agentResponseLines(text)` splits agent output into nonblank lines only.
+- The bridge streams `filterAgentText` over JSON text events, the non-JSON fallback, and the close-time stdout flush; `stripLeadingBlankLines` remains exported but now only marks the run `started` once nonblank text arrives, so metadata and split blank chunks no longer disable leading stripping early.
+- The plugin renders response output as nonblank outline rows via `agentResponseLines`, deleting surplus rows when a repaint has fewer lines than before instead of leaving blank rows.
+- `test/tests/llm_agent.ts` uses `assert` (strict) for the new tests: `commandFor` sandbox args, `filterAgentText` across every chunk split and char-by-char, `agentResponseLines` nonblank filtering, and `stripLeadingBlankLines` staying unstarted through blank chunks.
+- Verification on 2026-11-19: `npm run verify` passed (TSLint, TypeScript, 277 Mocha tests). Committed as `3d885c0 Run Codex in workspace-write sandbox and filter agent output by line` and pushed to `origin/master`.
+
 ## Hermes history visibility (2026-11-17)
 
 - Hermes defaults finite `chat -q` runs to source `oneshot`, which human history pickers hide. Read-only inspection of the installed Hermes implementation and local state database confirmed this source exists for saved runs; a missing picker entry does not mean the transcript was lost.
