@@ -3,6 +3,7 @@
 ## LLM Chat provider settings dialog
 
 - The LLM Chat plugin is implemented in `src/plugins/llm_chat/index.ts`.
+- On 2026-11-19, changed the request status label from `Sending to ChatGPT` to `Sending to LLM`, preserving the configured model name and ellipsis.
 - Provider URL, model name, and API key are configured together in one form dialog rather than three sequential `window.prompt` calls.
 - Dialog styles live in `src/plugins/llm_chat/index.sass`.
 - Defaults remain `https://api.openai.com/v1/chat/completions` and `gpt-5.4`.

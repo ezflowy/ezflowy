@@ -452,7 +452,7 @@ registerPlugin({
         await session.document.getSubtreeRows(promptPath.row)
       );
 
-      session.showMessage(`Sending to ChatGPT (${settings.model})...`, { time: 0 });
+      session.showMessage(`Sending to LLM (${settings.model})...`, { time: 0 });
 
       const completeRequest = async () => {
         try {
