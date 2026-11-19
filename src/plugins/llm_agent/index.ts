@@ -163,7 +163,8 @@ registerPlugin({
     const settings = configured;
     const resume = await findResume(sourcePath, api);
     const provider = resume ? resume.provider : settings.provider;
-    const rows = await session.addBlocks(sourcePath, -1, [
+    const outputIndex = (await session.document.getChildren(sourcePath)).length;
+    const rows = await session.addBlocks(sourcePath, outputIndex, [
       {text: `Agent status [starting · ${provider}]`},
       {text: 'Agent response', children: ['…']},
     ]);

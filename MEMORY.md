@@ -50,6 +50,12 @@
 - `test/tests/llm_agent.ts` uses `assert` (strict) for the new tests: `commandFor` sandbox args, `filterAgentText` across every chunk split and char-by-char, `agentResponseLines` nonblank filtering, and `stripLeadingBlankLines` staying unstarted through blank chunks.
 - Verification on 2026-11-19: `npm run verify` passed (TSLint, TypeScript, 277 Mocha tests). Committed as `3d885c0 Run Codex in workspace-write sandbox and filter agent output by line` and pushed to `origin/master`.
 
+## Agent response placement (2026-11-19)
+
+- LLM Agent appends `Agent status` followed by `Agent response` after the triggering node's existing children, using the explicit child count as the insertion index.
+- Passing `-1` to `Session.addBlocks` with multiple rows appends the first row but increments the next insertion index to `0`, placing the response before existing children. Use an explicit insertion index when appending this pair.
+- Validation under Node 22.22.2: `npm run verify` passed (TSLint, TypeScript, 277 Mocha tests), targeted ESLint passed, and `git diff --check` passed. Live browser placement was not independently verified.
+
 ## Hermes history visibility (2026-11-17)
 
 - Hermes defaults finite `chat -q` runs to source `oneshot`, which human history pickers hide. Read-only inspection of the installed Hermes implementation and local state database confirmed this source exists for saved runs; a missing picker entry does not mean the transcript was lost.
