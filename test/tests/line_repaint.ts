@@ -43,6 +43,56 @@ describe('outline text repaint notifications', function() {
 });
 
 describe('outline edit lock repaint', function() {
+  it('repaints a Chat subtree and clears every visible lock cue on release', async function() {
+    const session = new InMemorySession();
+    await session.document.load([
+      {text: 'Prompt', children: [{text: 'Child', children: ['Grandchild']}]},
+      'Unrelated',
+    ]);
+    const prompt = (await session.document.getChildren(Path.root()))[0];
+    const rows = await session.document.getSubtreeRows(prompt.row);
+    const component = new SessionComponent({session});
+    const mounted = new Map<number, BlockComponent>();
+    const cues = new Map<number, boolean>();
+    const visit = (element: React.ReactNode): void => {
+      React.Children.forEach(element, child => {
+        if (!React.isValidElement<any>(child)) { return; }
+        if (child.type === BlockComponent) {
+          const previous = mounted.get(child.props.path.row);
+          const block = new BlockComponent(child.props);
+          mounted.set(child.props.path.row, block);
+          if (!previous || previous.shouldComponentUpdate(child.props)) {
+            visit(block.render());
+          }
+        } else if (typeof child.type === 'function') {
+          // Render the row wrapper, where the lock class and aria state live.
+          const row = new (child.type as any)(child.props).render();
+          cues.set(child.props.path.row, row.props['aria-readonly']);
+          assertEqual(row.props.className.includes('node-text--locked'), row.props['aria-readonly']);
+        } else {
+          visit(child.props.children);
+        }
+      });
+    };
+    Object.assign(component, {
+      state: {loaded: true, crumbContents: {}, cursorsTree: new CursorsInfoTree(Path.rootRow())},
+      update: () => visit(component.render()),
+    });
+    component.componentDidMount();
+    try {
+      assertEqual(Array.from(cues.values()), [false, false, false, false]);
+      const token = session.acquireEditLock(rows);
+      assertEqual(rows.map(row => cues.get(row)), [true, true, true]);
+      const sibling = (await session.document.getChildren(Path.root()))[1];
+      assertEqual(cues.get(sibling.row), false);
+      // No text or cursor changes: release itself must repaint every mounted row.
+      session.releaseEditLock(token);
+      assertEqual(Array.from(cues.values()), [false, false, false, false]);
+    } finally {
+      component.componentWillUnmount();
+    }
+  });
+
   it('invalidates unchanged blocks on lock acquisition and release', async function() {
     const session = new InMemorySession();
     await session.document.load([{text: 'Prompt', children: ['Agent response']}]);

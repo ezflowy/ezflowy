@@ -79,6 +79,13 @@
 - Verification on 2026-11-12: `npm run verify` passed with 260 tests, and the production build succeeded with the existing Firebase source-map and LLM Chat ESLint warnings.
 - `ezflowy.iml` (IntelliJ module file) is now tracked; committed as `dd23bed Add IntelliJ IDEA module file` on 2026-11-17.
 
+## Chat subtree lock repaint regression (2026-11-19)
+
+- The shared `editLocksVersion` repaint fix in `5fd3499` also covers LLM Chat: lock acquisition and release invalidate every nested block, including visible descendants whose cached text and cursor state are unchanged.
+- Added a regression in `test/tests/line_repaint.ts` that simulates mounted block updates through `shouldComponentUpdate` and checks the rendered lock class and `aria-readonly` state on a Chat prompt, child, and grandchild. It verifies that an unrelated sibling stays unlocked and that release alone clears all visible lock cues.
+- No additional runtime change was needed in this checkout. Live browser behavior has not been independently verified; reload the running app to pick up the shared repaint fix.
+- Validation under Node 22.22.2: `npm run verify` passed (TSLint, TypeScript, 280 Mocha tests), targeted ESLint on the regression test passed, and `git diff --check` passed.
+
 ## Agent completion lock repaint (2026-11-19)
 
 - Agent completion released edit locks and emitted `editLocksChanged`, but `BlockComponent.shouldComponentUpdate` skipped unchanged cached blocks, leaving their lock cues visible until another update.
